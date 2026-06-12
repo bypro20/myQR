@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4f2ff;
+  --foreground: #1e1b4b;
+  --card: #ffffff;
+  --card-foreground: #1e1b4b;
+  --muted: #64748b;
+  --border: #e9e5ff;
+  --brand: #7c3aed;
+  --brand-dark: #5b21b6;
+  --brand-light: #ede9fe;
+  --accent: #f97316;
+  --accent-light: #ffedd5;
+  --success: #10b981;
+  --danger: #ef4444;
+  --sidebar-from: #1e1b4b;
+  --sidebar-to: #312e81;
+  --radius: 1rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-light: var(--brand-light);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-geist-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+::selection {
+  background: #ddd6fe;
+  color: #1e1b4b;
+}
+
+.gradient-brand {
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+}
+
+.gradient-hero {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.18), transparent 40%),
+    radial-gradient(circle at 80% 0%, rgba(249, 115, 22, 0.12), transparent 35%),
+    linear-gradient(180deg, #faf8ff 0%, #f4f2ff 100%);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px -24px rgba(91, 33, 182, 0.35);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}

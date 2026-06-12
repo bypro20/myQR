@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum QrMode {
+  STATIC
+  DYNAMIC
+}
+
+enum QrType {
+  URL
+  GOOGLE_MAPS
+  GOOGLE_REVIEW
+  WIFI
+  WHATSAPP
+  SOCIAL
+  LINK_BIO
+  VCARD
+  EMAIL
+  PHONE
+  SMS
+  PDF
+  WARRANTY
+  LCV
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model QrCode {
+  id            String      @id @default(cuid())
+  name          String
+  type          QrType
+  mode          QrMode      @default(STATIC)
+  shortCode     String?     @unique
+  targetUrl     String?
+  payload       String      @default("{}")
+  design        String      @default("{}")
+  description   String?
+  customerName  String?
+  projectName   String?
+  productType   String?
+  isActive      Boolean     @default(true)
+  scanCount     Int         @default(0)
+  lastScannedAt DateTime?
+  templateId    String?
+  template      QrTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  scans         QrScan[]
+  linkBio       LinkBioPage?
+  warrantyForm  WarrantyForm?
+  lcvForm       LcvForm?
+  files         UploadedFile[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([type])
+  @@index([mode])
+  @@index([isActive])
+  @@index([customerName])
+  @@index([createdAt])
+}
+
+model QrScan {
+  id         String   @id @default(cuid())
+  qrCodeId   String
+  qrCode     QrCode   @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  deviceType String?
+  browser    String?
+  os         String?
+  country    String?
+  city       String?
+  ipHash     String?
+  scannedAt  DateTime @default(now())
+
+  @@index([qrCodeId])
+  @@index([scannedAt])
+}
+
+model QrTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  qrType          QrType
+  defaultTitle    String?
+  defaultSubtitle String?
+  design          String   @default("{}")
+  dimensions      String?
+  printFormat     String?
+  notes           String?
+  qrCodes         QrCode[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model LinkBioPage {
+  id          String   @id @default(cuid())
+  qrCodeId    String   @unique
+  qrCode      QrCode   @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  slug        String   @unique
+  title       String
+  description String?
+  logoUrl     String?
+  bgColor     String   @default("#ffffff")
+  buttonColor String   @default("#111827")
+  links       String   @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WarrantyForm {
+  id            String                 @id @default(cuid())
+  qrCodeId      String                 @unique
+  qrCode        QrCode                 @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  slug          String                 @unique
+  title         String                 @default("Garanti Aktivasyon")
+  registrations WarrantyRegistration[]
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+}
+
+model WarrantyRegistration {
+  id            String       @id @default(cuid())
+  formId        String
+  form          WarrantyForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  customerName  String
+  phone         String
+  email         String
+  productName   String
+  productModel  String?
+  serialNumber  String
+  purchaseDate  String?
+  invoiceNumber String?
+  purchasedFrom String?
+  warrantyStart String?
+  warrantyEnd   String?
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([serialNumber])
+  @@index([customerName])
+}
+
+model LcvForm {
+  id            String            @id @default(cuid())
+  qrCodeId      String            @unique
+  qrCode        QrCode            @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  slug          String            @unique
+  eventName     String
+  eventDate     String?
+  title         String            @default("Katılım Formu")
+  registrations LcvRegistration[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
+model LcvRegistration {
+  id         String   @id @default(cuid())
+  formId     String
+  form       LcvForm  @relation(fields: [formId], references: [id], onDelete: Cascade)
+  fullName   String
+  phone      String
+  attendance String
+  guestCount Int      @default(1)
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@index([formId])
+}
+
+model UploadedFile {
+  id        String   @id @default(cuid())
+  qrCodeId  String?
+  qrCode    QrCode?  @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+  category  String
+  fileName  String
+  mimeType  String
+  size      Int
+  path      String
+  createdAt DateTime @default(now())
+
+  @@index([category])
+  @@index([qrCodeId])
+}
