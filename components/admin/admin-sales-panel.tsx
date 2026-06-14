@@ -26,7 +26,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
-import { formatDate, formatCreditsDisplay } from "@/lib/utils";
+import { formatDate, formatCreditsDisplay, cn } from "@/lib/utils";
 import { useAdminNotifications } from "@/components/admin/admin-notification-provider";
 import { AdminFinanceGuide } from "@/components/admin/admin-finance-guide";
 
@@ -163,6 +163,184 @@ export function AdminSalesPanel() {
   const [confirmInput, setConfirmInput] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  function rowKey(p: PaymentRow) {
+    return p.orderId || p.id;
+  }
+
+  function isSelected(p: PaymentRow) {
+    return selectedIds.has(rowKey(p));
+  }
+
+  function toggleSelect(p: PaymentRow) {
+    const key = rowKey(p);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function selectAllRows(rows: PaymentRow[]) {
+    setSelectedIds(new Set(rows.map(rowKey)));
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  function allRowsSelected(rows: PaymentRow[]) {
+    return rows.length > 0 && rows.every((p) => isSelected(p));
+  }
+
+  function toggleSelectAll(rows: PaymentRow[]) {
+    if (allRowsSelected(rows)) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const p of rows) next.delete(rowKey(p));
+        return next;
+      });
+      return;
+    }
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const p of rows) next.add(rowKey(p));
+      return next;
+    });
+  }
+
+  async function bulkSelectedAction(
+    action: "delete_selected" | "approve_selected" | "cancel_selected",
+    options?: { force?: boolean },
+  ) {
+    const orderIds = Array.from(selectedIds);
+    if (orderIds.length === 0) {
+      notifyErr("Önce en az bir sipariş seçin.");
+      return;
+    }
+
+    const label =
+      action === "delete_selected"
+        ? `${orderIds.length} sipariş kaydı silinsin mi?`
+        : action === "approve_selected"
+          ? `${orderIds.length} sipariş onaylansın mı?`
+          : `${orderIds.length} sipariş iptal edilsin mi?`;
+
+    if (!confirm(label)) return;
+
+    setBulkLoading(action);
+    setMessage("");
+    setError("");
+    try {
+      const res = await fetch("/api/admin/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, orderIds, force: options?.force }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        notifyErr(data.error || "Toplu işlem başarısız.");
+        return;
+      }
+
+      if (action === "delete_selected") {
+        const skipped = data.skipped ?? 0;
+        notifyOk(
+          skipped > 0
+            ? `${data.deleted ?? 0} kayıt silindi, ${skipped} kayıt atlandı (tamamlanan/iade).`
+            : `${data.deleted ?? 0} kayıt silindi.`,
+        );
+      } else if (action === "approve_selected") {
+        notifyOk(`${data.approved ?? 0} sipariş onaylandı.`);
+      } else {
+        notifyOk(`${data.cancelled ?? 0} sipariş iptal edildi.`);
+      }
+
+      clearSelection();
+      setAllPayments([]);
+      await reloadAll();
+    } catch {
+      notifyErr("Bağlantı hatası. Tekrar deneyin.");
+    } finally {
+      setBulkLoading(null);
+    }
+  }
+
+  function renderBulkToolbar(rows: PaymentRow[], tone: "orange" | "violet" = "violet") {
+    const selectedCount = rows.filter((p) => isSelected(p)).length;
+    const hasPendingSelected = rows.some(
+      (p) => isSelected(p) && (p.status === "PENDING" || p.status === "AWAITING_CONFIRMATION"),
+    );
+
+    return (
+      <div
+        className={cn(
+          "flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3",
+          tone === "orange" ? "border-orange-100 bg-orange-50/50" : "border-violet-100 bg-violet-50/40",
+        )}
+      >
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="font-semibold text-[var(--ink)]">
+            {selectedIds.size > 0 ? `${selectedIds.size} sipariş seçili` : "Toplu işlem"}
+          </span>
+          {selectedCount > 0 ? (
+            <span className="text-xs text-[var(--ink-muted)]">(bu tabloda {selectedCount})</span>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            className="text-xs"
+            disabled={rows.length === 0}
+            onClick={() => toggleSelectAll(rows)}
+          >
+            {allRowsSelected(rows) ? "Seçimi kaldır" : "Tümünü seç"}
+          </Button>
+          {selectedIds.size > 0 ? (
+            <Button type="button" variant="secondary" className="text-xs" onClick={clearSelection}>
+              Seçimi temizle
+            </Button>
+          ) : null}
+          {hasPendingSelected ? (
+            <>
+              <Button
+                type="button"
+                variant="accent"
+                className="text-xs"
+                disabled={!!bulkLoading}
+                onClick={() => bulkSelectedAction("approve_selected")}
+              >
+                {bulkLoading === "approve_selected" ? "…" : "Seçilenleri onayla"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="text-xs"
+                disabled={!!bulkLoading}
+                onClick={() => bulkSelectedAction("cancel_selected")}
+              >
+                {bulkLoading === "cancel_selected" ? "…" : "Seçilenleri iptal et"}
+              </Button>
+            </>
+          ) : null}
+          {selectedIds.size > 0 ? (
+            <Button
+              type="button"
+              variant="danger"
+              className="text-xs"
+              disabled={!!bulkLoading}
+              onClick={() => bulkSelectedAction("delete_selected", { force: isSuperAdmin })}
+            >
+              {bulkLoading === "delete_selected" ? "…" : "Seçilenleri sil"}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   const loadExtras = useCallback(async () => {
     const [creditsRes, paymentsRes, meRes] = await Promise.all([
@@ -204,7 +382,14 @@ export function AdminSalesPanel() {
       setTransactions(data.transactions || []);
     }
     if (paymentsRes.ok) {
-      setAllPayments(paymentsData.payments || []);
+      const mapped: PaymentRow[] = (paymentsData.payments || []).map(
+        (p: PaymentRow & { orderId?: string }) => ({
+          ...p,
+          id: p.id || p.orderId,
+          orderId: p.orderId || p.id,
+        }),
+      );
+      setAllPayments(mapped);
       setPaymentsLoaded(true);
     }
     if (meRes.ok) {
@@ -489,10 +674,21 @@ export function AdminSalesPanel() {
       tone === "orange" ? "bg-orange-50/95" : tone === "violet" ? "bg-violet-50/95" : "bg-white";
 
     return (
-      <table className="min-w-[980px] w-full text-sm">
-        <thead className={`${headBg} text-left text-[var(--ink-muted)]`}>
-          <tr>
-            <th className="px-4 py-3">Kullanıcı</th>
+      <>
+        {renderBulkToolbar(rows, tone === "orange" ? "orange" : "violet")}
+        <table className="min-w-[1020px] w-full text-sm">
+          <thead className={`${headBg} text-left text-[var(--ink-muted)]`}>
+            <tr>
+              <th className="w-10 px-3 py-3">
+                <input
+                  type="checkbox"
+                  checked={allRowsSelected(rows)}
+                  onChange={() => toggleSelectAll(rows)}
+                  aria-label="Tümünü seç"
+                  className="h-4 w-4 cursor-pointer rounded border-violet-300"
+                />
+              </th>
+              <th className="px-4 py-3">Kullanıcı</th>
             <th className="px-4 py-3">Tür</th>
             <th className="px-4 py-3">Paket / Plan</th>
             <th className="px-4 py-3">Tutar</th>
@@ -507,7 +703,22 @@ export function AdminSalesPanel() {
         </thead>
         <tbody>
           {rows.map((p) => (
-            <tr key={p.orderId || p.id} className="border-t border-violet-50 align-middle">
+            <tr
+              key={rowKey(p)}
+              className={cn(
+                "border-t border-violet-50 align-middle",
+                isSelected(p) && "bg-violet-50/40",
+              )}
+            >
+              <td className="px-3 py-3">
+                <input
+                  type="checkbox"
+                  checked={isSelected(p)}
+                  onChange={() => toggleSelect(p)}
+                  aria-label={`${p.customer?.name || p.organization.name} seç`}
+                  className="h-4 w-4 cursor-pointer rounded border-violet-300"
+                />
+              </td>
               <td className="px-4 py-3">
                 <p className="font-semibold text-[var(--ink)]">{p.customer?.name || p.organization.name}</p>
                 <p className="text-xs text-[var(--ink-muted)]">{p.customer?.email}</p>
@@ -533,6 +744,7 @@ export function AdminSalesPanel() {
           ))}
         </tbody>
       </table>
+      </>
     );
   }
 
@@ -623,28 +835,35 @@ export function AdminSalesPanel() {
         <CardHeader className="bg-violet-50/40">
           <h2 className="flex items-center gap-2 font-semibold text-[var(--ink)]">
             <Settings2 className="h-5 w-5 text-violet-600" />
-            Yönetim Araçları
+            Toplu İşlem & Temizleme
           </h2>
+          <p className="mt-1 text-xs text-[var(--ink-muted)]">
+            Tablolardan seçim yaparak veya aşağıdaki kısayollarla toplu silme / iptal / temizleme yapın.
+          </p>
         </CardHeader>
         <CardBody className="space-y-4">
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--ink-muted)]">Ödeme İşlemleri</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--ink-muted)]">Hızlı temizleme</p>
             <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="secondary" className="text-xs" disabled={!!bulkLoading} onClick={() => bulkAction("delete_pending", undefined, "Başlatılmış (bekleyen) siparişleri sil")}>
+                <Trash2 className="h-3.5 w-3.5" />
+                {bulkLoading === "delete_pending" ? "…" : "Başlatılmışları Sil"}
+              </Button>
               <Button type="button" variant="secondary" className="text-xs" disabled={!!bulkLoading} onClick={() => bulkAction("cancel_all_pending", undefined, "Tüm bekleyen ödemeleri iptal et")}>
                 <XCircle className="h-3.5 w-3.5" />
                 {bulkLoading === "cancel_all_pending" ? "…" : "Bekleyenleri İptal Et"}
-              </Button>
-              <Button type="button" variant="secondary" className="text-xs" disabled={!!bulkLoading} onClick={() => bulkAction("delete_failed", undefined, "Başarısız kayıtları sil")}>
-                <Trash2 className="h-3.5 w-3.5" />
-                {bulkLoading === "delete_failed" ? "…" : "Başarısızları Sil"}
               </Button>
               <Button type="button" variant="secondary" className="text-xs" disabled={!!bulkLoading} onClick={() => bulkAction("delete_non_completed", undefined, "Tamamlanmamış tüm kayıtları sil")}>
                 <Eraser className="h-3.5 w-3.5" />
                 {bulkLoading === "delete_non_completed" ? "…" : "Tamamlanmayanları Sil"}
               </Button>
+              <Button type="button" variant="secondary" className="text-xs" disabled={!!bulkLoading} onClick={() => bulkAction("delete_failed", undefined, "Başarısız kayıtları sil")}>
+                <Trash2 className="h-3.5 w-3.5" />
+                {bulkLoading === "delete_failed" ? "…" : "Başarısızları Sil"}
+              </Button>
               <Button type="button" variant="danger" className="text-xs" disabled={!!bulkLoading} onClick={() => bulkAction("reset_payment_history", "SIFIRLA", "Tüm ödeme geçmişini sil")}>
                 <RefreshCw className="h-3.5 w-3.5" />
-                {bulkLoading === "reset_payment_history" ? "…" : "Geçmişi Sıfırla"}
+                {bulkLoading === "reset_payment_history" ? "…" : "Tüm Geçmişi Sıfırla"}
               </Button>
             </div>
           </div>
@@ -744,11 +963,23 @@ export function AdminSalesPanel() {
           {filteredHistory.length === 0 ? (
             <p className="px-6 py-10 text-center text-[var(--ink-muted)]">Kayıt bulunamadı.</p>
           ) : (
-            <table className="min-w-[1000px] w-full text-sm">
-              <thead className="bg-violet-50/50 text-left text-[var(--ink-muted)]">
-                <tr>
-                  <th className="px-4 py-3">Kullanıcı</th>
-                  <th className="px-4 py-3">Paket</th>
+            <>
+              {renderBulkToolbar(filteredHistory)}
+              <table className="min-w-[1040px] w-full text-sm">
+                <thead className="bg-violet-50/50 text-left text-[var(--ink-muted)]">
+                  <tr>
+                    <th className="w-10 px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={allRowsSelected(filteredHistory)}
+                        onChange={() => toggleSelectAll(filteredHistory)}
+                        aria-label="Tümünü seç"
+                        className="h-4 w-4 cursor-pointer rounded border-violet-300"
+                      />
+                    </th>
+                    <th className="px-4 py-3">Kullanıcı</th>
+                    <th className="px-4 py-3">Tür</th>
+                    <th className="px-4 py-3">Paket</th>
                   <th className="px-4 py-3">Tutar</th>
                   <th className="px-4 py-3">Kredi</th>
                   <th className="px-4 py-3">Durum</th>
@@ -759,14 +990,27 @@ export function AdminSalesPanel() {
                   </th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredHistory.map((p) => (
-                  <tr key={p.id} className="border-t border-violet-50 align-middle">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-[var(--ink)]">{p.customer?.name || p.organization.name}</p>
-                      <p className="text-xs text-[var(--ink-muted)]">{p.customer?.email}</p>
-                    </td>
-                    <td className="px-4 py-3">{p.packageName}</td>
+                <tbody>
+                  {filteredHistory.map((p) => (
+                    <tr
+                      key={rowKey(p)}
+                      className={cn("border-t border-violet-50 align-middle", isSelected(p) && "bg-violet-50/40")}
+                    >
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={isSelected(p)}
+                          onChange={() => toggleSelect(p)}
+                          aria-label={`${p.customer?.name || p.organization.name} seç`}
+                          className="h-4 w-4 cursor-pointer rounded border-violet-300"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-[var(--ink)]">{p.customer?.name || p.organization.name}</p>
+                        <p className="text-xs text-[var(--ink-muted)]">{p.customer?.email}</p>
+                      </td>
+                      <td className="px-4 py-3">{orderTypeBadge(p)}</td>
+                      <td className="px-4 py-3">{p.packageName}</td>
                     <td className="px-4 py-3 font-bold text-violet-700">₺{p.amountTry.toLocaleString("tr-TR")}</td>
                     <td className="px-4 py-3">{p.credits}</td>
                     <td className="px-4 py-3">
@@ -781,6 +1025,7 @@ export function AdminSalesPanel() {
                 ))}
               </tbody>
             </table>
+            </>
           )}
         </CardBody>
       </Card>

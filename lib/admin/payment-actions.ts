@@ -1,5 +1,6 @@
 import { CreditTxType, PaymentStatus, ActivityKind } from "@/app/generated/prisma/client";
 import { getCreditPackage } from "@/lib/billing/packages";
+import { completePaymentOrder } from "@/lib/billing/complete-order";
 import { logActivity } from "@/lib/admin/activity-log";
 import { parseJson } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
@@ -149,4 +150,108 @@ export async function resetAllBalances() {
     count++;
   }
   return count;
+}
+
+export async function deletePaymentOrdersByIds(
+  orderIds: string[],
+  options: { force?: boolean; isSuperAdmin: boolean },
+) {
+  let deleted = 0;
+  let skipped = 0;
+
+  for (const id of orderIds) {
+    const order = await prisma.paymentOrder.findUnique({ where: { id } });
+    if (!order) continue;
+
+    const protectedStatus =
+      order.status === PaymentStatus.COMPLETED || order.status === PaymentStatus.REFUNDED;
+
+    if (protectedStatus && !options.force) {
+      skipped++;
+      continue;
+    }
+    if (protectedStatus && options.force && !options.isSuperAdmin) {
+      skipped++;
+      continue;
+    }
+
+    await prisma.paymentOrder.delete({ where: { id } });
+    deleted++;
+  }
+
+  return { deleted, skipped };
+}
+
+export async function approvePaymentOrdersByIds(orderIds: string[], adminUserId: string) {
+  let approved = 0;
+  let skipped = 0;
+
+  for (const id of orderIds) {
+    try {
+      const order = await prisma.paymentOrder.findUnique({ where: { id } });
+      if (!order) {
+        skipped++;
+        continue;
+      }
+      if (
+        order.status !== PaymentStatus.PENDING &&
+        order.status !== PaymentStatus.AWAITING_CONFIRMATION
+      ) {
+        skipped++;
+        continue;
+      }
+      const result = await completePaymentOrder(id, `admin_${adminUserId}`);
+      if (!result.alreadyCompleted) approved++;
+      void logActivity({
+        kind: ActivityKind.PAYMENT_APPROVED,
+        actorUserId: adminUserId,
+        organizationId: order.organizationId,
+        targetType: "payment",
+        targetId: order.id,
+        targetLabel: order.packageId,
+        message: `Admin · toplu onay · ₺${order.amountTry}`,
+      });
+    } catch {
+      skipped++;
+    }
+  }
+
+  return { approved, skipped };
+}
+
+export async function cancelPaymentOrdersByIds(orderIds: string[], adminUserId: string) {
+  let cancelled = 0;
+  let skipped = 0;
+
+  for (const id of orderIds) {
+    const order = await prisma.paymentOrder.findUnique({ where: { id } });
+    if (!order) {
+      skipped++;
+      continue;
+    }
+    if (
+      order.status !== PaymentStatus.PENDING &&
+      order.status !== PaymentStatus.AWAITING_CONFIRMATION
+    ) {
+      skipped++;
+      continue;
+    }
+
+    const meta = parseJson<Record<string, unknown>>(order.metadata, {});
+    await prisma.paymentOrder.update({
+      where: { id },
+      data: {
+        status: PaymentStatus.FAILED,
+        metadata: JSON.stringify({
+          ...meta,
+          cancelledAt: new Date().toISOString(),
+          cancelledBy: adminUserId,
+          cancelReason: "admin_bulk_cancel",
+        }),
+      },
+    });
+    cancelled++;
+  }
+
+  return { cancelled, skipped };
 }
