@@ -55,6 +55,7 @@ const FILTER_OPTIONS = [
   { value: "USER_LOGIN", label: "Kullanıcı Girişi" },
   { value: "SIGNUP", label: "Kayıt" },
   { value: "PAYMENT_CREATED", label: "Ödeme Talebi" },
+  { value: "PAYMENT_CLAIMED", label: "FAST Bildirimi" },
   { value: "PAYMENT_APPROVED", label: "Ödeme Onayı" },
   { value: "CREDIT_ADJUSTED", label: "Kredi İşlemi" },
 ] as const;

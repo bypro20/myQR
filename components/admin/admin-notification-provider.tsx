@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, Bell, CheckCircle2, Coins, ShoppingBag } from "lucide-react";
+import { Activity, Bell, CheckCircle2, Coins, Landmark, Layers, ShoppingBag } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 
 type PaymentEvent = {
@@ -14,10 +14,13 @@ type PaymentEvent = {
   amountTry: number;
   credits: number;
   packageName: string;
+  orderType?: "credits" | "subscription";
+  orderTypeLabel?: string;
   provider: string;
   message: string;
   createdAt: string;
   completedAt: string | null;
+  claimedAt?: string | null;
   customer: { name: string; email: string } | null;
   organization: { name: string; credits: number; unlimitedCredits: boolean };
 };
@@ -25,6 +28,7 @@ type PaymentEvent = {
 type Stats = {
   pendingCount: number;
   pendingAmountTry: number;
+  fastClaimedCount?: number;
   todayRevenueTry: number;
   todayOrderCount: number;
   todayCreditsSold: number;
@@ -132,12 +136,18 @@ export function AdminNotificationProvider({ children }: { children: React.ReactN
       for (const act of (data.newActivities || []) as ActivityItem[]) {
         if (seenIdsRef.current.has(act.id)) continue;
         seenIdsRef.current.add(act.id);
-        if (act.kind === "QR_CREATED" || act.kind === "SIGNUP" || act.kind === "USER_LOGIN" || act.kind === "ADMIN_LOGIN") {
+        if (
+          act.kind === "PAYMENT_CLAIMED" ||
+          act.kind === "QR_CREATED" ||
+          act.kind === "SIGNUP" ||
+          act.kind === "USER_LOGIN" ||
+          act.kind === "ADMIN_LOGIN"
+        ) {
           playNotifySound();
           pushToast({
-            title: act.kindLabel,
+            title: act.kind === "PAYMENT_CLAIMED" ? "FAST ödeme bildirimi" : act.kindLabel,
             body: act.message,
-            href: act.href || "/admin/activity",
+            href: act.kind === "PAYMENT_CLAIMED" ? "/admin/sales" : act.href || "/admin/activity",
           });
         }
       }
@@ -147,7 +157,7 @@ export function AdminNotificationProvider({ children }: { children: React.ReactN
   useEffect(() => {
     if (!enabled) return;
     void refresh();
-    const id = window.setInterval(() => void refresh(), 20_000);
+    const id = window.setInterval(() => void refresh(), 8_000);
     return () => window.clearInterval(id);
   }, [enabled, refresh]);
 
@@ -206,7 +216,7 @@ export function AdminNotificationBell() {
         aria-label="Satış bildirimleri"
       >
         <Bell className={cn("h-4 w-4", pendingCount > 0 && "animate-pulse")} />
-        <span className="hidden sm:inline">Satışlar</span>
+        <span className="hidden sm:inline">Ödemeler</span>
         {pendingCount > 0 ? (
           <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1.5 text-[10px] font-bold text-white">
             {pendingCount > 99 ? "99+" : pendingCount}
@@ -219,26 +229,52 @@ export function AdminNotificationBell() {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
           <div className="absolute right-0 z-50 mt-2 w-[min(100vw-2rem,380px)] overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-2xl shadow-violet-200/30">
             <div className="border-b border-violet-50 bg-violet-50/60 px-4 py-3">
-              <p className="text-sm font-bold text-[var(--ink)]">Satın Alma Bildirimleri</p>
+              <p className="text-sm font-bold text-[var(--ink)]">Ödeme Bildirimleri</p>
               {stats ? (
                 <p className="mt-0.5 text-xs text-[var(--ink-muted)]">
-                  Bugün ₺{stats.todayRevenueTry.toLocaleString("tr-TR")} · Bekleyen {stats.pendingCount} · Toplam bakiye{" "}
-                  {stats.totalPlatformCredits.toLocaleString("tr-TR")} kredi
+                  FAST onay: {stats.fastClaimedCount ?? 0} · Bekleyen: {stats.pendingCount} · Bugün ₺
+                  {stats.todayRevenueTry.toLocaleString("tr-TR")}
                 </p>
               ) : null}
             </div>
             <div className="max-h-80 overflow-y-auto">
-              {pending.length > 0 ? (
+              {pending.filter((ev) => ev.status === "AWAITING_CONFIRMATION").length > 0 ? (
+                <div className="border-b border-orange-100 bg-orange-50/40 p-2">
+                  <p className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-700">
+                    <Landmark className="h-3 w-3" />
+                    FAST onay bekleyen
+                  </p>
+                  {pending
+                    .filter((ev) => ev.status === "AWAITING_CONFIRMATION")
+                    .slice(0, 5)
+                    .map((ev) => (
+                      <Link
+                        key={ev.orderId}
+                        href="/admin/sales"
+                        onClick={() => setOpen(false)}
+                        className="block rounded-xl px-3 py-2.5 text-sm hover:bg-orange-100/60"
+                      >
+                        <p className="font-semibold text-[var(--ink)]">{ev.customer?.name || ev.organization.name}</p>
+                        <p className="text-xs text-[var(--ink-muted)]">
+                          {ev.orderTypeLabel || "Ödeme"} · {ev.packageName} · ₺{ev.amountTry.toLocaleString("tr-TR")}
+                        </p>
+                      </Link>
+                    ))}
+                </div>
+              ) : null}
+              {pending.filter((ev) => ev.status === "PENDING").length > 0 ? (
                 <div className="border-b border-violet-50 p-2">
-                  <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-600">Onay bekleyen</p>
-                  {pending.slice(0, 5).map((ev) => (
-                    <div key={ev.orderId} className="rounded-xl px-3 py-2.5 text-sm hover:bg-orange-50/50">
-                      <p className="font-semibold text-[var(--ink)]">{ev.customer?.name || ev.organization.name}</p>
-                      <p className="text-xs text-[var(--ink-muted)]">
-                        {ev.packageName} · ₺{ev.amountTry.toLocaleString("tr-TR")} · {ev.credits} kredi
-                      </p>
-                    </div>
-                  ))}
+                  <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-violet-600">
+                    Sipariş başlatıldı
+                  </p>
+                  {pending
+                    .filter((ev) => ev.status === "PENDING")
+                    .slice(0, 3)
+                    .map((ev) => (
+                      <div key={ev.orderId} className="rounded-xl px-3 py-2 text-sm text-[var(--ink-muted)]">
+                        {ev.customer?.name || ev.organization.name} · {ev.packageName}
+                      </div>
+                    ))}
                 </div>
               ) : null}
               {canViewActivity
@@ -259,10 +295,20 @@ export function AdminNotificationBell() {
                   <span
                     className={cn(
                       "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white",
-                      ev.kind === "completed" ? "bg-emerald-500" : ev.kind === "claimed" ? "bg-orange-500" : "bg-violet-400",
+                      ev.kind === "completed"
+                        ? "bg-emerald-500"
+                        : ev.kind === "claimed"
+                          ? "bg-orange-500"
+                          : "bg-violet-400",
                     )}
                   >
-                    {ev.kind === "completed" ? <CheckCircle2 className="h-4 w-4" /> : <Coins className="h-4 w-4" />}
+                    {ev.kind === "completed" ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : ev.orderType === "subscription" ? (
+                      <Layers className="h-4 w-4" />
+                    ) : (
+                      <Coins className="h-4 w-4" />
+                    )}
                   </span>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-[var(--ink)]">{ev.message}</p>
@@ -289,7 +335,7 @@ export function AdminNotificationBell() {
                 onClick={() => setOpen(false)}
                 className="block rounded-xl bg-violet-600 py-2.5 text-center text-sm font-semibold text-white hover:bg-violet-700"
               >
-                Satış & Bakiye paneline git
+                Satış & Ödeme paneline git
               </Link>
             </div>
           </div>

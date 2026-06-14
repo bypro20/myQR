@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { PaymentStatus } from "@/app/generated/prisma/client";
-import { getOrderType } from "@/lib/billing/order-catalog";
+import { ActivityKind, PaymentStatus } from "@/app/generated/prisma/client";
+import { logActivity } from "@/lib/admin/activity-log";
+import { getOrderLabel, getOrderType } from "@/lib/billing/order-catalog";
 import { requireTenantApi } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Bu sipariş için bildirim alınamadı." }, { status: 409 });
     }
 
+    const claimedAt = new Date().toISOString();
     const meta = JSON.parse(order.metadata || "{}") as Record<string, unknown>;
     await prisma.paymentOrder.update({
       where: { id: order.id },
@@ -41,15 +43,29 @@ export async function POST(req: NextRequest) {
         status: PaymentStatus.AWAITING_CONFIRMATION,
         metadata: JSON.stringify({
           ...meta,
-          claimedAt: new Date().toISOString(),
+          claimedAt,
         }),
       },
+    });
+
+    const orderType = getOrderType(order.packageId);
+    const label = getOrderLabel(order.packageId);
+
+    void logActivity({
+      kind: ActivityKind.PAYMENT_CLAIMED,
+      actorUserId: auth.user.id,
+      organizationId: auth.organization.id,
+      targetType: "payment",
+      targetId: order.id,
+      targetLabel: label,
+      message: `${auth.user.name} · ${label} için FAST ödeme bildirdi (₺${order.amountTry.toLocaleString("tr-TR")})`,
+      metadata: { orderType, amountTry: order.amountTry, claimedAt },
     });
 
     return NextResponse.json({
       ok: true,
       message:
-        getOrderType(order.packageId) === "subscription"
+        orderType === "subscription"
           ? "Ödeme bildiriminiz alındı. FAST transferi kontrol edildikten sonra aboneliğiniz aktif edilecektir."
           : "Ödeme bildiriminiz alındı. FAST transferi kontrol edildikten sonra krediler yüklenecektir.",
     });

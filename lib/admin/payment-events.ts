@@ -1,5 +1,9 @@
 import { PaymentOrder, PaymentStatus } from "@/app/generated/prisma/client";
-import { getCreditPackage } from "@/lib/billing/packages";
+import {
+  getOrderLabel,
+  getOrderType,
+  type BillingOrderType,
+} from "@/lib/billing/order-catalog";
 import { parseJson } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 
@@ -12,6 +16,8 @@ export type AdminPaymentEvent = {
   credits: number;
   packageId: string;
   packageName: string;
+  orderType: BillingOrderType;
+  orderTypeLabel: string;
   provider: string;
   createdAt: string;
   completedAt: string | null;
@@ -32,6 +38,11 @@ type OrderWithOrg = PaymentOrder & {
   };
 };
 
+const ORDER_TYPE_LABELS: Record<BillingOrderType, string> = {
+  credits: "Kredi paketi",
+  subscription: "Abonelik",
+};
+
 function orderClaimedAt(order: PaymentOrder): string | null {
   const meta = parseJson<Record<string, unknown>>(order.metadata, {});
   const claimed = meta.claimedAt;
@@ -44,19 +55,35 @@ function eventKind(order: PaymentOrder, claimedAt: string | null): AdminPaymentE
   return "created";
 }
 
-function eventMessage(kind: AdminPaymentEvent["kind"], customerName: string, pkgName: string, amountTry: number) {
+function eventMessage(
+  kind: AdminPaymentEvent["kind"],
+  customerName: string,
+  pkgName: string,
+  amountTry: number,
+  orderType: BillingOrderType,
+) {
+  const amount = `₺${amountTry.toLocaleString("tr-TR")}`;
   if (kind === "completed") {
-    return `${customerName} · ${pkgName} satın aldı (₺${amountTry.toLocaleString("tr-TR")})`;
+    if (orderType === "subscription") {
+      return `${customerName} · ${pkgName} aboneliği aktif edildi (${amount})`;
+    }
+    return `${customerName} · ${pkgName} satın aldı (${amount})`;
   }
   if (kind === "claimed") {
-    return `${customerName} · ${pkgName} için ödeme bildirdi (₺${amountTry.toLocaleString("tr-TR")})`;
+    if (orderType === "subscription") {
+      return `${customerName} · ${pkgName} için FAST ödeme bildirdi (${amount})`;
+    }
+    return `${customerName} · ${pkgName} için FAST ödeme bildirdi (${amount})`;
   }
-  return `${customerName} · ${pkgName} siparişi başlattı (₺${amountTry.toLocaleString("tr-TR")})`;
+  if (orderType === "subscription") {
+    return `${customerName} · ${pkgName} abonelik siparişi başlattı (${amount})`;
+  }
+  return `${customerName} · ${pkgName} siparişi başlattı (${amount})`;
 }
 
 export function mapPaymentOrderToEvent(order: OrderWithOrg): AdminPaymentEvent {
-  const pkg = getCreditPackage(order.packageId);
-  const pkgName = pkg?.name ?? order.packageId;
+  const orderType = getOrderType(order.packageId);
+  const pkgName = getOrderLabel(order.packageId);
   const customer = order.organization.memberships[0]?.user ?? null;
   const customerName = customer?.name || order.organization.name;
   const claimedAt = orderClaimedAt(order);
@@ -71,6 +98,8 @@ export function mapPaymentOrderToEvent(order: OrderWithOrg): AdminPaymentEvent {
     credits: order.credits,
     packageId: order.packageId,
     packageName: pkgName,
+    orderType,
+    orderTypeLabel: ORDER_TYPE_LABELS[orderType],
     provider: order.provider,
     createdAt: order.createdAt.toISOString(),
     completedAt: order.completedAt?.toISOString() ?? null,
@@ -85,7 +114,7 @@ export function mapPaymentOrderToEvent(order: OrderWithOrg): AdminPaymentEvent {
       credits: order.organization.credits,
       unlimitedCredits: order.organization.unlimitedCredits,
     },
-    message: eventMessage(kind, customerName, pkgName, order.amountTry),
+    message: eventMessage(kind, customerName, pkgName, order.amountTry, orderType),
   };
 }
 
@@ -113,6 +142,15 @@ const orderInclude = {
   },
 };
 
+function sortPendingOrders(orders: OrderWithOrg[]) {
+  return [...orders].sort((a, b) => {
+    const aClaimed = a.status === PaymentStatus.AWAITING_CONFIRMATION ? 1 : 0;
+    const bClaimed = b.status === PaymentStatus.AWAITING_CONFIRMATION ? 1 : 0;
+    if (aClaimed !== bClaimed) return bClaimed - aClaimed;
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  });
+}
+
 export async function fetchAdminPaymentEvents(limit = 60) {
   const orders = await prisma.paymentOrder.findMany({
     orderBy: { createdAt: "desc" },
@@ -130,19 +168,20 @@ export async function fetchPendingPaymentEvents() {
     orderBy: { createdAt: "desc" },
     include: orderInclude,
   });
-  return orders.map(mapPaymentOrderToEvent);
+  return sortPendingOrders(orders).map(mapPaymentOrderToEvent);
 }
 
 export async function fetchAdminSalesStats() {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  const [pending, completedToday, revenueAll, orgBalances, customerCount] = await Promise.all([
+  const [pending, claimed, completedToday, revenueAll, orgBalances, customerCount] = await Promise.all([
     prisma.paymentOrder.aggregate({
       where: { status: { in: [PaymentStatus.PENDING, PaymentStatus.AWAITING_CONFIRMATION] } },
       _count: true,
       _sum: { amountTry: true },
     }),
+    prisma.paymentOrder.count({ where: { status: PaymentStatus.AWAITING_CONFIRMATION } }),
     prisma.paymentOrder.findMany({
       where: { status: PaymentStatus.COMPLETED, completedAt: { gte: startOfDay } },
       select: { amountTry: true, credits: true },
@@ -162,6 +201,7 @@ export async function fetchAdminSalesStats() {
   return {
     pendingCount: pending._count,
     pendingAmountTry: pending._sum.amountTry ?? 0,
+    fastClaimedCount: claimed,
     todayRevenueTry: completedToday.reduce((s, o) => s + o.amountTry, 0),
     todayOrderCount: completedToday.length,
     todayCreditsSold: completedToday.reduce((s, o) => s + o.credits, 0),

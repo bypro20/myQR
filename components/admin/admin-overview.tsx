@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Activity, Building2, QrCode, Radio, TrendingUp } from "lucide-react";
+import { Activity, Building2, Landmark, QrCode, Radio, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -16,6 +16,8 @@ type Overview = {
     organizations: number | null;
     qrCodes: number | null;
     revenueTry: number | null;
+    fastClaimedCount?: number | null;
+    pendingPayments?: number | null;
   };
   organizations: Array<{
     id: string;
@@ -64,6 +66,24 @@ export function AdminOverview() {
           ) : undefined
         }
       />
+
+      {(data.stats.fastClaimedCount ?? 0) > 0 ? (
+        <Link
+          href="/admin/sales"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 px-5 py-4 transition hover:border-orange-300"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-lg">
+              <Landmark className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="font-bold text-[var(--ink)]">{data.stats.fastClaimedCount} FAST ödeme bildirimi onay bekliyor</p>
+              <p className="text-sm text-[var(--ink-muted)]">Abonelik ve kredi ödemelerini Satış & Ödeme merkezinden onaylayın.</p>
+            </div>
+          </div>
+          <span className="text-sm font-semibold text-orange-700">Onay paneline git →</span>
+        </Link>
+      ) : null}
 
       {statCards.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

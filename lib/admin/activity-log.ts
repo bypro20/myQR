@@ -26,6 +26,7 @@ export const ACTIVITY_KIND_LABELS: Record<ActivityKind, string> = {
   ADMIN_LOGIN: "Admin girişi",
   SIGNUP: "Yeni kayıt",
   PAYMENT_CREATED: "Ödeme talebi",
+  PAYMENT_CLAIMED: "FAST ödeme bildirimi",
   PAYMENT_APPROVED: "Ödeme onayı",
   PAYMENT_CANCELLED: "Ödeme iptali",
   PAYMENT_REFUNDED: "Ödeme iadesi",
@@ -227,7 +228,9 @@ async function buildSyntheticActivities(limit: number): Promise<ActivityFeedItem
           ? ActivityKind.PAYMENT_CANCELLED
           : order.status === PaymentStatus.REFUNDED
             ? ActivityKind.PAYMENT_REFUNDED
-            : ActivityKind.PAYMENT_CREATED;
+            : order.status === PaymentStatus.AWAITING_CONFIRMATION
+              ? ActivityKind.PAYMENT_CLAIMED
+              : ActivityKind.PAYMENT_CREATED;
     items.push({
       id: `syn-pay-${order.id}`,
       kind,

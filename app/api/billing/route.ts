@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { PaymentStatus } from "@/app/generated/prisma/client";
+import { ActivityKind, PaymentStatus } from "@/app/generated/prisma/client";
 import { buildFastOrderMeta } from "@/lib/billing/fast/config";
 import { fastReferenceCode } from "@/lib/billing/fast/reference";
 import { getCreditPackage } from "@/lib/billing/packages";
 import {
   SUBSCRIPTION_PLAN_IDS,
   canSubscribeToPlan,
+  getOrderLabel,
   subscriptionPackageId,
 } from "@/lib/billing/order-catalog";
 import { isPaymentCheckoutReady } from "@/lib/billing/payment-config";
+import { logActivity } from "@/lib/admin/activity-log";
 import { getPlan } from "@/lib/plans";
 import { requireTenantApi } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
@@ -107,6 +109,18 @@ export async function POST(req: NextRequest) {
       data: {
         metadata: JSON.stringify({ ...meta, ...metadata }),
       },
+    });
+
+    const label = getOrderLabel(packageId);
+    void logActivity({
+      kind: ActivityKind.PAYMENT_CREATED,
+      actorUserId: auth.user.id,
+      organizationId: auth.organization.id,
+      targetType: "payment",
+      targetId: order.id,
+      targetLabel: label,
+      message: `${auth.user.name} · ${label} siparişi başlattı (₺${amountTry.toLocaleString("tr-TR")})`,
+      metadata: { ...metadata, amountTry },
     });
 
     return NextResponse.json({

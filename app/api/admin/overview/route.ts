@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchAdminSalesStats } from "@/lib/admin/payment-events";
 import { getUserAdminPermissions, userHasAnyPermission } from "@/lib/admin-permissions";
 import { requirePlatformAdminApi } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
@@ -14,7 +15,7 @@ export async function GET() {
   const canOverview = userHasAnyPermission(auth.user, ["overview"]);
   const canQrCodes = userHasAnyPermission(auth.user, ["qr_codes_view"]);
 
-  const [users, organizations, payments, stats] = await Promise.all([
+  const [users, organizations, payments, stats, finance] = await Promise.all([
     canUsers
       ? prisma.user.findMany({
           orderBy: { createdAt: "desc" },
@@ -52,6 +53,7 @@ export async function GET() {
         ? prisma.paymentOrder.aggregate({ _sum: { amountTry: true }, where: { status: "COMPLETED" } })
         : Promise.resolve({ _sum: { amountTry: 0 } }),
     ]),
+    canPayments ? fetchAdminSalesStats() : Promise.resolve(null),
   ]);
 
   return NextResponse.json({
@@ -59,11 +61,14 @@ export async function GET() {
     organizations,
     payments,
     permissions: perms,
+    finance,
     stats: {
       users: canUsers ? stats[0] : null,
       organizations: canOrgs ? stats[1] : null,
       qrCodes: canQrCodes || canOverview ? stats[2] : null,
       revenueTry: canPayments ? stats[3]._sum.amountTry || 0 : null,
+      fastClaimedCount: finance?.fastClaimedCount ?? null,
+      pendingPayments: finance?.pendingCount ?? null,
     },
   });
 }

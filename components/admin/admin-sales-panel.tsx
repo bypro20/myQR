@@ -11,6 +11,8 @@ import {
   CreditCard,
   Download,
   Eraser,
+  Landmark,
+  Layers,
   RefreshCw,
   Settings2,
   ShoppingBag,
@@ -26,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import { formatDate, formatCreditsDisplay } from "@/lib/utils";
 import { useAdminNotifications } from "@/components/admin/admin-notification-provider";
+import { AdminFinanceGuide } from "@/components/admin/admin-finance-guide";
 
 type PaymentRow = {
   id: string;
@@ -34,8 +37,11 @@ type PaymentRow = {
   amountTry: number;
   credits: number;
   packageName: string;
+  orderType?: "credits" | "subscription";
+  orderTypeLabel?: string;
   provider: string;
   createdAt: string;
+  claimedAt?: string | null;
   completedAt: string | null;
   customer: { id?: string; name: string; email: string } | null;
   organization: { name: string; credits: number; unlimitedCredits: boolean };
@@ -236,7 +242,12 @@ export function AdminSalesPanel() {
     const res = await fetch(`/api/admin/payments/${orderId}/approve`, { method: "POST" });
     setActionLoading(null);
     if (res.ok) {
-      notifyOk("Ödeme onaylandı, kredi yüklendi.");
+      const row = pending.find((p) => p.orderId === orderId);
+      notifyOk(
+        row?.orderType === "subscription"
+          ? "Abonelik onaylandı, plan ve aylık kredi aktif edildi."
+          : "Ödeme onaylandı, kredi yüklendi.",
+      );
       await reloadAll();
     } else {
       const data = await res.json();
@@ -448,6 +459,82 @@ export function AdminSalesPanel() {
   }, [paymentsLoaded, allPayments, events, historyFilter]);
 
   const completedEvents = events.filter((e) => e.status === "COMPLETED");
+  const fastQueue = useMemo(
+    () => pending.filter((p) => p.status === "AWAITING_CONFIRMATION"),
+    [pending],
+  );
+  const startedOrders = useMemo(() => pending.filter((p) => p.status === "PENDING"), [pending]);
+
+  function orderTypeBadge(p: PaymentRow) {
+    if (p.orderType === "subscription") {
+      return (
+        <Badge variant="accent" className="inline-flex items-center gap-1">
+          <Layers className="h-3 w-3" />
+          Abonelik
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="muted" className="inline-flex items-center gap-1">
+        <Coins className="h-3 w-3" />
+        Kredi
+      </Badge>
+    );
+  }
+
+  function renderPaymentTable(rows: PaymentRow[], tone: "orange" | "violet" | "default" = "default") {
+    const headBg =
+      tone === "orange" ? "bg-orange-50/30" : tone === "violet" ? "bg-violet-50/50" : "bg-violet-50/50";
+    const stickyBg =
+      tone === "orange" ? "bg-orange-50/95" : tone === "violet" ? "bg-violet-50/95" : "bg-white";
+
+    return (
+      <table className="min-w-[980px] w-full text-sm">
+        <thead className={`${headBg} text-left text-[var(--ink-muted)]`}>
+          <tr>
+            <th className="px-4 py-3">Kullanıcı</th>
+            <th className="px-4 py-3">Tür</th>
+            <th className="px-4 py-3">Paket / Plan</th>
+            <th className="px-4 py-3">Tutar</th>
+            <th className="px-4 py-3">Kredi</th>
+            <th className="px-4 py-3">Mevcut Bakiye</th>
+            <th className="px-4 py-3">Durum</th>
+            <th className="px-4 py-3">Tarih</th>
+            <th className={`sticky right-0 min-w-[240px] ${stickyBg} px-4 py-3 text-right shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.08)]`}>
+              İşlem
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((p) => (
+            <tr key={p.orderId || p.id} className="border-t border-violet-50 align-middle">
+              <td className="px-4 py-3">
+                <p className="font-semibold text-[var(--ink)]">{p.customer?.name || p.organization.name}</p>
+                <p className="text-xs text-[var(--ink-muted)]">{p.customer?.email}</p>
+              </td>
+              <td className="px-4 py-3">{orderTypeBadge(p)}</td>
+              <td className="px-4 py-3 font-medium">{p.packageName}</td>
+              <td className="px-4 py-3 font-bold text-violet-700">₺{p.amountTry.toLocaleString("tr-TR")}</td>
+              <td className="px-4 py-3">
+                +{p.credits}
+                {p.orderType === "subscription" ? <span className="text-xs text-[var(--ink-muted)]"> / ay</span> : null}
+              </td>
+              <td className="px-4 py-3">
+                {formatCreditsDisplay(p.organization.credits, p.organization.unlimitedCredits)}
+              </td>
+              <td className="px-4 py-3">
+                <Badge variant={statusVariant(p.status)}>{statusLabel[p.status] || p.status}</Badge>
+              </td>
+              <td className="px-4 py-3 text-[var(--ink-muted)]">{formatDate(p.claimedAt || p.createdAt)}</td>
+              <td className={`sticky right-0 ${stickyBg} px-4 py-3 text-right shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.06)]`}>
+                {renderRowActions(p)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
 
   function renderRowActions(p: PaymentRow) {
     const name = p.customer?.name || p.organization.name;
@@ -492,8 +579,8 @@ export function AdminSalesPanel() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Satış & Bakiye"
-        description="Satın alma bildirimleri, ödeme geçmişi, bakiye yönetimi ve platform araçları"
+        title="Satış & Ödeme Merkezi"
+        description="FAST onay kuyruğu, abonelik yükseltmeleri, kredi paketleri ve bakiye yönetimi"
         action={
           <div className="flex flex-wrap gap-2">
             <a href="/api/admin/payments/export" download>
@@ -519,10 +606,13 @@ export function AdminSalesPanel() {
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       ) : null}
 
+      <AdminFinanceGuide fastClaimedCount={stats?.fastClaimedCount ?? fastQueue.length} />
+
       {stats ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <StatCard label="FAST Onay Kuyruğu" value={stats.fastClaimedCount ?? fastQueue.length} icon={Landmark} tone="orange" />
           <StatCard label="Bugünkü Gelir" value={`₺${stats.todayRevenueTry.toLocaleString("tr-TR")}`} icon={TrendingUp} tone="emerald" />
-          <StatCard label="Bekleyen Ödeme" value={stats.pendingCount} icon={Bell} tone="orange" />
+          <StatCard label="Bekleyen Toplam" value={stats.pendingCount} icon={Bell} tone="orange" />
           <StatCard label="Toplam Gelir" value={`₺${stats.totalRevenueTry.toLocaleString("tr-TR")}`} icon={CreditCard} tone="violet" />
           <StatCard label="Platform Bakiyesi" value={stats.totalPlatformCredits.toLocaleString("tr-TR")} icon={Wallet} tone="sky" />
         </div>
@@ -582,61 +672,49 @@ export function AdminSalesPanel() {
         </CardBody>
       </Card>
 
-      {/* Onay bekleyen */}
-      <Card className="border-orange-200/60">
-        <CardHeader className="flex flex-wrap items-center justify-between gap-2 bg-orange-50/40">
-          <div className="flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-orange-600" />
-            <h2 className="font-semibold text-[var(--ink)]">Onay Bekleyen Satın Almalar</h2>
+      {/* FAST onay kuyruğu */}
+      <Card className="border-orange-300/70 shadow-md shadow-orange-100/40">
+        <CardHeader className="flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-orange-50 to-amber-50/80">
+          <div>
+            <h2 className="flex items-center gap-2 font-semibold text-[var(--ink)]">
+              <Landmark className="h-5 w-5 text-orange-600" />
+              FAST Onay Kuyruğu
+            </h2>
+            <p className="mt-1 text-xs text-[var(--ink-muted)]">
+              Müşteri «FAST yaptım — bildir» dediğinde buraya düşer. Bankadan kontrol edip onaylayın.
+            </p>
           </div>
-          <Badge variant="accent">{pending.length} bekliyor</Badge>
+          <Badge variant="accent">{fastQueue.length} bildirim</Badge>
         </CardHeader>
         <CardBody className="overflow-x-auto p-0">
-          {pending.length === 0 ? (
-            <p className="px-6 py-10 text-center text-[var(--ink-muted)]">Onay bekleyen ödeme yok.</p>
+          {fastQueue.length === 0 ? (
+            <p className="px-6 py-10 text-center text-[var(--ink-muted)]">FAST onayı bekleyen bildirim yok.</p>
           ) : (
-            <table className="min-w-[900px] w-full text-sm">
-              <thead className="bg-orange-50/30 text-left text-[var(--ink-muted)]">
-                <tr>
-                  <th className="px-4 py-3">Kullanıcı</th>
-                  <th className="px-4 py-3">Paket</th>
-                  <th className="px-4 py-3">Tutar</th>
-                  <th className="px-4 py-3">Kredi</th>
-                  <th className="px-4 py-3">Mevcut Bakiye</th>
-                  <th className="px-4 py-3">Durum</th>
-                  <th className="px-4 py-3">Tarih</th>
-                  <th className="sticky right-0 min-w-[240px] bg-orange-50/95 px-4 py-3 text-right shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.08)]">
-                    İşlem
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {pending.map((p) => (
-                  <tr key={p.orderId} className="border-t border-orange-50 align-middle">
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-[var(--ink)]">{p.customer?.name || p.organization.name}</p>
-                      <p className="text-xs text-[var(--ink-muted)]">{p.customer?.email}</p>
-                    </td>
-                    <td className="px-4 py-3 font-medium">{p.packageName}</td>
-                    <td className="px-4 py-3 font-bold text-violet-700">₺{p.amountTry.toLocaleString("tr-TR")}</td>
-                    <td className="px-4 py-3">+{p.credits}</td>
-                    <td className="px-4 py-3">
-                      {formatCreditsDisplay(p.organization.credits, p.organization.unlimitedCredits)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="warning">{statusLabel[p.status] || p.status}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-[var(--ink-muted)]">{formatDate(p.createdAt)}</td>
-                    <td className="sticky right-0 bg-white px-4 py-3 text-right shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.06)]">
-                      {renderRowActions(p)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            renderPaymentTable(fastQueue, "orange")
           )}
         </CardBody>
       </Card>
+
+      {/* Başlatılmış siparişler */}
+      {startedOrders.length > 0 ? (
+        <Card className="border-violet-100">
+          <CardHeader className="flex flex-wrap items-center justify-between gap-2 bg-violet-50/30">
+            <div>
+              <h2 className="flex items-center gap-2 font-semibold text-[var(--ink)]">
+                <ShoppingBag className="h-5 w-5 text-violet-600" />
+                Başlatılmış Siparişler
+              </h2>
+              <p className="mt-1 text-xs text-[var(--ink-muted)]">
+                Ödeme sayfası açıldı; müşteri henüz FAST bildirimi göndermedi.
+              </p>
+            </div>
+            <Badge variant="muted">{startedOrders.length} sipariş</Badge>
+          </CardHeader>
+          <CardBody className="overflow-x-auto p-0">{renderPaymentTable(startedOrders, "violet")}</CardBody>
+        </Card>
+      ) : null}
+
+      {/* Eski birleşik blok kaldırıldı — geçmiş aşağıda */}
 
       {/* Tam ödeme geçmişi */}
       <Card>
