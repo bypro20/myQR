@@ -6,6 +6,8 @@ const WEBHOOK_PATHS = [
   "/api/billing/posnet/callback",
 ];
 
+const PUBLIC_AUTH_PATHS = ["/api/auth/login", "/api/auth/signup", "/api/auth/admin-login"];
+
 function allowedHosts(): string[] {
   const hosts = new Set<string>();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
@@ -27,6 +29,7 @@ function allowedHosts(): string[] {
 export function verifyApiOrigin(req: NextRequest): boolean {
   const pathname = req.nextUrl.pathname;
   if (WEBHOOK_PATHS.some((p) => pathname.startsWith(p))) return true;
+  if (PUBLIC_AUTH_PATHS.some((p) => pathname === p)) return true;
   if (process.env.NODE_ENV !== "production") return true;
 
   const method = req.method.toUpperCase();

@@ -304,7 +304,7 @@ export function UnifiedPaymentCheckout({
                 </span>
               </label>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
-                <PaymentBadges variant="checkout" size="sm" />
+                <PaymentBadges variant="checkout" size="sm" showCard={cardEnabled} />
                 <p className="flex items-center gap-1 text-xs text-[var(--ink-muted)]">
                   <Shield className="h-3.5 w-3.5 text-emerald-600" />
                   256-bit SSL güvenli ödeme

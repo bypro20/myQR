@@ -48,13 +48,20 @@ export async function POST(req: NextRequest) {
 
     for (const [index, row] of parsed.data.entries()) {
       try {
+        const targetUrl = (row.targetUrl || row["Hedef bağlantı"] || "").trim();
+        const qrType = row.type || row["QR tipi"] || "URL";
+        if (qrType.toUpperCase() === "URL" && !targetUrl) {
+          errors.push(`Satır ${index + 1}: Hedef bağlantı (URL) zorunlu.`);
+          continue;
+        }
+
         const qr = await createQrCode(auth.organization.id, {
           name: row.name || row["QR adı"] || `Toplu QR ${index + 1}`,
-          type: row.type || row["QR tipi"] || "URL",
+          type: qrType,
           mode: row.mode === "STATIC" ? "STATIC" : "DYNAMIC",
           durationTier: "FREE_TRIAL",
-          targetUrl: row.targetUrl || row["Hedef bağlantı"],
-          payload: { url: row.targetUrl || row["Hedef bağlantı"] || "https://example.com" },
+          targetUrl: targetUrl || undefined,
+          payload: targetUrl ? { url: targetUrl } : {},
           customerName: row.customerName || row["Müşteri adı"],
           productType: row.productType || row["Ürün adı"],
           description: row.description || row["Açıklama"],

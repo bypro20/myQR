@@ -321,9 +321,9 @@ export function PricingStorefront() {
               </div>
 
               <div className="mt-10 flex flex-col items-center gap-3 border-t border-white/10 pt-10">
-                <PaymentBadges size="sm" />
+                <PaymentBadges size="sm" showCard={false} />
                 <p className="text-center text-xs text-slate-500">
-                  Kart, FAST ve Troy ·{" "}
+                  FAST, havale ve Troy ·{" "}
                   <Link href="/mesafeli-satis-sozlesmesi" className="text-orange-400 hover:underline">
                     Mesafeli satış sözleşmesi
                   </Link>

@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
     category as "logos" | "png" | "svg" | "pdf" | "templates" | "bulk",
     file.name,
     buffer,
+    file.type || "application/octet-stream",
   );
 
   const record = await prisma.uploadedFile.create({

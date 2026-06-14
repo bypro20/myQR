@@ -35,7 +35,7 @@ export function getCompanyInfo(): CompanyInfo {
     city: env("COMPANY_CITY", "İstanbul"),
     country: env("COMPANY_COUNTRY", "Türkiye"),
     kep: env("COMPANY_KEP", ""),
-    email: env("COMPANY_EMAIL", "destek@myqr.com"),
+    email: env("COMPANY_EMAIL", "destek@myqar.net"),
     phone: env("COMPANY_PHONE", ""),
     website,
     chamber: env("COMPANY_CHAMBER", ""),

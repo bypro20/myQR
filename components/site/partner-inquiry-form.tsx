@@ -15,6 +15,7 @@ import {
   PARTNER_EMAIL,
   buildWhatsAppUrl,
   formatWhatsAppDisplay,
+  getPhoneTelLink,
 } from "@/lib/site-contact";
 import { cn } from "@/lib/utils";
 
@@ -270,7 +271,7 @@ export function PartnerInquiryForm() {
         <ContactCard
           icon={Phone}
           title="Telefon"
-          href="tel:+905051236824"
+          href={getPhoneTelLink()}
           value={formatWhatsAppDisplay()}
           sub="Hafta içi 09:00 – 18:00"
         />

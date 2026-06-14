@@ -234,7 +234,7 @@ export function BillingPanel({ organization, paymentNotice, paymentMessage }: Pr
                 <h2 className="text-xl font-bold text-violet-950">Kredi paketi satın al</h2>
               </div>
               <p className="mt-1 max-w-2xl text-sm text-slate-500">
-                Abonelikten bağımsız, tek seferlik kredi yüklemesi. Kart, FAST veya havale ile ödeme.
+                Abonelikten bağımsız, tek seferlik kredi yüklemesi. FAST veya havale ile ödeme.
               </p>
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-800">
@@ -282,7 +282,7 @@ export function BillingPanel({ organization, paymentNotice, paymentMessage }: Pr
               <h2 className="text-xl font-bold text-violet-950">Abonelik planları</h2>
             </div>
             <p className="mt-1 max-w-2xl text-sm text-slate-500">
-              Aylık planınız kredi limiti ve modül erişimini belirler. Kart veya FAST ile anında yükseltin.
+              Aylık planınız kredi limiti ve modül erişimini belirler. FAST veya havale ile anında yükseltin.
             </p>
           </div>
 

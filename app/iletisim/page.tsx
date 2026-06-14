@@ -5,12 +5,14 @@ import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { PageHero } from "@/components/site/page-hero";
 import { ContactInfoPanel } from "@/components/site/contact-info-panel";
-import { PaymentBadges } from "@/components/site/payment-badges";
+import { SmartPaymentBadges } from "@/components/site/smart-payment-badges";
 import {
   PARTNER_EMAIL,
   buildWhatsAppUrl,
   formatWhatsAppDisplay,
+  formatPhoneDisplay,
   getPartnerWhatsAppMessage,
+  getPhoneTelLink,
 } from "@/lib/site-contact";
 import { getCompanyInfo } from "@/lib/company-info";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -60,12 +62,12 @@ export default function ContactPage() {
               <p className="mt-1 text-sm font-semibold text-[var(--brand)]">{formatWhatsAppDisplay()}</p>
               <p className="mt-2 text-xs text-[var(--ink-muted)]">En hızlı yanıt</p>
             </a>
-            <a href="tel:+905051236824" className="card-elevated card-hover p-6">
+            <a href={getPhoneTelLink()} className="card-elevated card-hover p-6">
               <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--brand)] text-white">
                 <Phone className="h-6 w-6" />
               </span>
               <p className="mt-4 font-bold text-[var(--ink)]">Telefon</p>
-              <p className="mt-1 text-sm font-semibold text-[var(--brand)]">{formatWhatsAppDisplay()}</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--brand)]">{formatPhoneDisplay()}</p>
               <p className="mt-2 text-xs text-[var(--ink-muted)]">Hafta içi 09:00 – 18:00</p>
             </a>
             <a href={`mailto:${c.email}`} className="card-elevated card-hover p-6">
@@ -95,7 +97,7 @@ export default function ContactPage() {
           <div className="site-container mt-10 card-elevated p-8 text-center">
             <p className="font-semibold text-[var(--ink)]">Güvenli ödeme altyapısı</p>
             <div className="mt-4 flex justify-center">
-              <PaymentBadges size="sm" />
+              <SmartPaymentBadges size="sm" />
             </div>
             <p className="mt-4 text-sm text-[var(--ink-muted)]">
               Panel kiralama başvurusu için{" "}

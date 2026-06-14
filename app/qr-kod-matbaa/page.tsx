@@ -53,7 +53,7 @@ export default function QrKodMatbaaPage() {
         "Kalıcı QR lisansı matbaa müşterileri için",
         "Panel kiralama ile müşteri başına ayrı hesap",
         "Dinamik QR — müşteri baskıyı yenilemeden link günceller",
-        "iyzico / FAST ile güvenli ödeme altyapısı",
+        "FAST / havale ile güvenli ödeme altyapısı",
       ]}
       faqs={faqs}
       jsonLd={landingPageJsonLd({

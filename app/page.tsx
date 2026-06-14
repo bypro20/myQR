@@ -16,7 +16,7 @@ import { MARKETING_IMAGES } from "@/lib/marketing/visuals";
 import { QrLifecyclePricing } from "@/components/billing/qr-lifecycle-pricing";
 import { IconBadge } from "@/components/site/icon-badge";
 import { PlanCard } from "@/components/site/plan-card";
-import { PaymentBadges } from "@/components/site/payment-badges";
+import { SmartPaymentBadges } from "@/components/site/smart-payment-badges";
 import { FEATURE_THEMES } from "@/lib/marketing/theme";
 import { PRICING } from "@/lib/billing/pricing-config";
 import { homepageJsonLd } from "@/lib/seo/json-ld";
@@ -223,7 +223,7 @@ export default async function HomePage() {
               ))}
             </div>
             <div className="mt-10 flex flex-col items-center gap-4">
-              <PaymentBadges size="sm" variant="checkout" />
+              <SmartPaymentBadges size="sm" variant="checkout" />
               <Link href="/pricing" className="link-brand inline-flex items-center gap-1 text-sm">
                 Tüm paketleri ve kredi seçeneklerini gör <ArrowRight className="h-4 w-4" />
               </Link>

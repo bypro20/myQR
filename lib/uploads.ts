@@ -24,12 +24,23 @@ export async function saveUpload(
   category: keyof typeof UPLOAD_DIRS,
   fileName: string,
   data: Buffer | string,
+  mimeType = "application/octet-stream",
 ) {
   const safe = safeFileName(fileName);
   try {
     await ensureUploadDirs();
     const fullPath = path.join(UPLOAD_DIRS[category], safe);
-    await writeFile(fullPath, data);
+    const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
+    await writeFile(fullPath, buffer);
+
+    if (process.env.VERCEL && buffer.length <= 900_000 && mimeType.startsWith("image/")) {
+      return {
+        fileName: safe,
+        path: `data:${mimeType};base64,${buffer.toString("base64")}`,
+        absolutePath: fullPath,
+      };
+    }
+
     const publicRoot = process.env.VERCEL ? "" : "/uploads/qr";
     return {
       fileName: safe,

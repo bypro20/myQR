@@ -1,21 +1,40 @@
 import { getCompanyInfo } from "@/lib/company-info";
 
-const DEFAULT_WHATSAPP = "905051236824";
+const DEFAULT_PHONE_DIGITS = "905051236824";
 
-export function getWhatsAppNumber() {
-  const phone = process.env.COMPANY_WHATSAPP || process.env.COMPANY_PHONE || "";
-  const digits = phone.replace(/\D/g, "");
+function digitsOnly(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+/** E.164 benzeri rakam dizisi (90…) */
+export function getPhoneDigits() {
+  const phone = process.env.COMPANY_PHONE || process.env.COMPANY_WHATSAPP || "";
+  const digits = digitsOnly(phone);
   if (digits.length >= 10) {
     return digits.startsWith("90") ? digits : `90${digits.replace(/^0/, "")}`;
   }
-  return DEFAULT_WHATSAPP;
+  return DEFAULT_PHONE_DIGITS;
+}
+
+export function getWhatsAppNumber() {
+  return getPhoneDigits();
+}
+
+export function formatPhoneDisplay() {
+  const n = getPhoneDigits();
+  const local = n.startsWith("90") ? `0${n.slice(2)}` : n;
+  if (local.length === 11) {
+    return local.replace(/(\d{4})(\d{3})(\d{2})(\d{2})/, "$1 $2 $3 $4");
+  }
+  return local;
 }
 
 export function formatWhatsAppDisplay() {
-  const n = getWhatsAppNumber();
-  if (n === "905051236824") return "0505 123 68 24";
-  const local = n.startsWith("90") ? `0${n.slice(2)}` : n;
-  return local.replace(/(\d{4})(\d{3})(\d{2})(\d{2})/, "$1 $2 $3 $4").trim();
+  return formatPhoneDisplay();
+}
+
+export function getPhoneTelLink() {
+  return `tel:+${getPhoneDigits()}`;
 }
 
 export function buildWhatsAppUrl(message?: string) {
@@ -34,4 +53,4 @@ export function getPartnerWhatsAppMessage(preset: "general" | "pricing" | "apply
   return lines[preset];
 }
 
-export const PARTNER_EMAIL = process.env.COMPANY_PARTNER_EMAIL || "ortaklik@myqr.com";
+export const PARTNER_EMAIL = process.env.COMPANY_PARTNER_EMAIL || "ortaklik@myqar.net";

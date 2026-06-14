@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { QrCode } from "lucide-react";
-import { PaymentBadges } from "@/components/site/payment-badges";
+import { SmartPaymentBadges } from "@/components/site/smart-payment-badges";
 import { getCompanyInfo } from "@/lib/company-info";
 
 const product = [
@@ -106,7 +106,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="relative border-t border-white/10 px-5 py-8">
-        <PaymentBadges className="mx-auto" size="sm" />
+        <SmartPaymentBadges className="mx-auto" size="sm" />
         <p className="site-container mt-6 text-center text-xs text-slate-500">
           © {new Date().getFullYear()} myQR · Tüm hakları saklıdır.
         </p>
