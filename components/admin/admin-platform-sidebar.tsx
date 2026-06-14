@@ -59,7 +59,7 @@ const groups: { title: string; items: NavLink[] }[] = [
   {
     title: "Finans",
     items: [
-      { href: "/admin/sales", label: "Satış & Ödeme", hint: "FAST onay, abonelik, kredi", icon: ShoppingBag, accent: "from-orange-500 to-amber-500", permissions: ["payments_view", "credits_manage", "organizations_manage"] },
+      { href: "/admin/sales", label: "Ödeme Yönetimi", hint: "FAST onay ve ödeme listesi", icon: ShoppingBag, accent: "from-orange-500 to-amber-500", permissions: ["payments_view", "credits_manage", "organizations_manage"] },
       { href: "/admin/ads", label: "Reklam Merkezi", hint: "Google Ads, sürekli reklam", icon: Megaphone, accent: "from-green-500 to-emerald-600", permissions: ["payments_view", "overview"] },
       { href: "/admin/credits", label: "Kredi Yönetimi", hint: "Yükle, ayarla, sıfırla", icon: Coins, accent: "from-amber-500 to-yellow-500", permissions: ["credits_manage", "organizations_manage"] },
       { href: "/admin/payments", label: "Ödeme Geçmişi", hint: "Tüm ödeme kayıtları", icon: CreditCard, accent: "from-fuchsia-500 to-purple-600", permissions: ["payments_view"] },

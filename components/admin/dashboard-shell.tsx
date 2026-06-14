@@ -26,7 +26,7 @@ const adminTitles: Record<string, { title: string; subtitle: string }> = {
   "/admin/users": { title: "Kullanıcı Yönetimi", subtitle: "Kullanıcıları oluşturun, düzenleyin ve yönetin" },
   "/admin/organizations": { title: "Organizasyon Yönetimi", subtitle: "Plan, kredi ve abonelik yönetimi" },
   "/admin/qr-codes": { title: "Kullanıcı QR Kodları", subtitle: "Kim ne oluşturdu, hangi işlem ve içerik özeti" },
-  "/admin/sales": { title: "Satış & Bakiye", subtitle: "Satın alma bildirimleri, onaylar ve kullanıcı bakiyeleri" },
+  "/admin/sales": { title: "Ödeme Yönetimi", subtitle: "FAST onayları, abonelik ve kredi ödemeleri" },
   "/admin/credits": { title: "Kredi Yönetimi", subtitle: "Sınırsız kredi ve toplu yükleme" },
   "/admin/payments": { title: "Ödeme Geçmişi", subtitle: "Tüm platform ödemeleri" },
   "/admin/settings": { title: "Admin Ayarları", subtitle: "E-posta, şifre ve profil yönetimi" },
