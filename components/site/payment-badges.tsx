@@ -58,7 +58,7 @@ export function PaymentBadges({
   const h = heights[size];
 
   return (
-    <div className={`flex flex-col items-center justify-center gap-2 ${className}`} aria-label={alt}>
+    <div className={`flex items-center justify-center ${className}`} aria-label={alt}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
@@ -67,7 +67,6 @@ export function PaymentBadges({
         loading="lazy"
         decoding="async"
       />
-      <FastBadges size="sm" />
     </div>
   );
 }
