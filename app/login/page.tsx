@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { ArrowRight } from "lucide-react";
 import { LoginForm } from "@/components/auth/login-form";
 import { AuthSidePanel } from "@/components/auth/auth-side-panel";
@@ -34,7 +35,9 @@ export default function LoginPage() {
           <Link href="/" className="mb-8 inline-flex items-center gap-1 text-sm text-[var(--ink-muted)] hover:text-[var(--brand)] lg:hidden">
             ← Ana sayfa
           </Link>
-          <LoginForm />
+          <Suspense fallback={<div className="card-elevated p-8 text-sm text-[var(--ink-muted)]">Yükleniyor…</div>}>
+            <LoginForm />
+          </Suspense>
           <p className="mt-6 text-center text-sm text-[var(--ink-muted)]">
             Hesabınız yok mu?{" "}
             <Link href="/signup" className="link-brand inline-flex items-center gap-1">

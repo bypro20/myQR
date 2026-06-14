@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { ArrowRight, Lock, Mail } from "lucide-react";
 import { HoneypotField } from "@/components/security/honeypot-field";
@@ -9,6 +9,8 @@ import { isTurnstileSiteKeyConfigured } from "@/lib/security/turnstile";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const afterLogin = searchParams.get("redirect") || "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -45,7 +47,7 @@ export function LoginForm() {
       setTurnstileToken("");
       return;
     }
-    router.push("/dashboard");
+    router.push(afterLogin.startsWith("/") ? afterLogin : "/dashboard");
     router.refresh();
   }
 
