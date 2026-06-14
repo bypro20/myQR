@@ -7,11 +7,13 @@ import {
   Building2,
   Coins,
   CreditCard,
+  Eraser,
   LogIn,
   QrCode,
   Radio,
   RefreshCw,
   ShoppingBag,
+  Trash2,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -78,6 +80,11 @@ export function AdminActivityPanel() {
   const [filter, setFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetWord, setResetWord] = useState("");
 
   const load = useCallback(async () => {
     const params = new URLSearchParams({ limit: "100" });
@@ -119,6 +126,37 @@ export function AdminActivityPanel() {
     return activities.filter((a) => a.kind === filter);
   }, [activities, filter]);
 
+  async function cleanup(
+    action: string,
+    extra?: { kind?: string; confirm?: string },
+    confirmMsg?: string,
+  ) {
+    if (confirmMsg && !confirm(confirmMsg)) return;
+    setBusy(action);
+    setMessage("");
+    setError("");
+    try {
+      const res = await fetch("/api/admin/activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...extra }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Temizleme başarısız.");
+        return;
+      }
+      setMessage(`${data.count ?? 0} kayıt silindi.`);
+      await load();
+    } catch {
+      setError("Bağlantı hatası.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const currentFilterLabel = FILTER_OPTIONS.find((f) => f.value === filter)?.label ?? "Tümü";
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -137,6 +175,77 @@ export function AdminActivityPanel() {
           </div>
         }
       />
+
+      {message ? (
+        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{message}</p>
+      ) : null}
+      {error ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+      ) : null}
+
+      <Card className="border-violet-100">
+        <CardBody className="flex flex-wrap items-center justify-between gap-3 py-4">
+          <div>
+            <p className="text-sm font-semibold text-[var(--ink)]">Aktivite temizleme</p>
+            <p className="text-xs text-[var(--ink-muted)]">İşlem geçmişini kategoriye göre veya tamamen sıfırlayın</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {filter !== "ALL" ? (
+              <Button
+                className="px-3 py-1.5 text-xs"
+                variant="secondary"
+                disabled={!!busy}
+                onClick={() =>
+                  cleanup(
+                    "clear_kind",
+                    { kind: filter },
+                    `«${currentFilterLabel}» kayıtları silinsin mi?`,
+                  )
+                }
+              >
+                <Eraser className="h-3.5 w-3.5" />
+                {busy === "clear_kind" ? "…" : `«${currentFilterLabel}» temizle`}
+              </Button>
+            ) : null}
+            <Button
+              className="px-3 py-1.5 text-xs"
+              variant="secondary"
+              disabled={!!busy}
+              onClick={() => cleanup("clear_credit", undefined, "Kredi işlem kayıtları silinsin mi?")}
+            >
+              <Coins className="h-3.5 w-3.5" />
+              {busy === "clear_credit" ? "…" : "Kredi kayıtları"}
+            </Button>
+            <Button
+              className="px-3 py-1.5 text-xs"
+              variant="secondary"
+              disabled={!!busy}
+              onClick={() => cleanup("clear_payment", undefined, "Ödeme kayıtları silinsin mi?")}
+            >
+              <CreditCard className="h-3.5 w-3.5" />
+              {busy === "clear_payment" ? "…" : "Ödeme kayıtları"}
+            </Button>
+            <Button
+              className="px-3 py-1.5 text-xs"
+              variant="secondary"
+              disabled={!!busy}
+              onClick={() => cleanup("clear_auth", undefined, "Giriş ve kayıt kayıtları silinsin mi?")}
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              {busy === "clear_auth" ? "…" : "Giriş kayıtları"}
+            </Button>
+            <Button
+              className="px-3 py-1.5 text-xs"
+              variant="danger"
+              disabled={!!busy}
+              onClick={() => setShowResetModal(true)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Tümünü sıfırla
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
 
       {stats ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -249,11 +358,48 @@ export function AdminActivityPanel() {
             <CardBody className="grid gap-2">
               <Link href="/admin/qr-codes"><Button type="button" variant="secondary" className="w-full justify-start text-xs"><QrCode className="h-4 w-4" /> QR Kodları</Button></Link>
               <Link href="/admin/users"><Button type="button" variant="secondary" className="w-full justify-start text-xs"><UserPlus className="h-4 w-4" /> Kullanıcılar</Button></Link>
-              <Link href="/admin/sales"><Button type="button" variant="secondary" className="w-full justify-start text-xs"><ShoppingBag className="h-4 w-4" /> Satış & Bakiye</Button></Link>
+              <Link href="/admin/sales"><Button type="button" variant="secondary" className="w-full justify-start text-xs"><ShoppingBag className="h-4 w-4" /> Ödeme Yönetimi</Button></Link>
             </CardBody>
           </Card>
         </div>
       </div>
+
+      {showResetModal ? (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-[var(--ink)]">Tüm aktivite geçmişini sil</h3>
+            <p className="mt-2 text-sm text-[var(--ink-muted)]">
+              Tüm işlem akışı kayıtları kalıcı olarak silinir. Kullanıcılar ve ödemeler etkilenmez.
+            </p>
+            <p className="mt-4 text-sm font-semibold text-red-700">
+              Onay için <span className="font-mono">SIFIRLA</span> yazın:
+            </p>
+            <input
+              autoFocus
+              value={resetWord}
+              onChange={(e) => setResetWord(e.target.value)}
+              className="input-focus mt-2 w-full rounded-lg border border-red-200 px-3 py-2.5 text-sm"
+            />
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => { setShowResetModal(false); setResetWord(""); }}>
+                Vazgeç
+              </Button>
+              <Button
+                variant="danger"
+                disabled={resetWord.trim().toUpperCase() !== "SIFIRLA" || !!busy}
+                onClick={() => {
+                  void cleanup("clear_all", { confirm: "SIFIRLA" }).then(() => {
+                    setShowResetModal(false);
+                    setResetWord("");
+                  });
+                }}
+              >
+                {busy === "clear_all" ? "…" : "Sıfırla"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

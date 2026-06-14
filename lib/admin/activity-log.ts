@@ -370,3 +370,45 @@ export async function fetchActivityStats() {
 export function isActivityAfterSince(item: ActivityFeedItem, since: Date) {
   return new Date(item.createdAt) > since;
 }
+
+const PAYMENT_KINDS: ActivityKind[] = [
+  "PAYMENT_CREATED",
+  "PAYMENT_CLAIMED",
+  "PAYMENT_APPROVED",
+  "PAYMENT_CANCELLED",
+  "PAYMENT_REFUNDED",
+  "PAYMENT_DELETED",
+];
+
+const CREDIT_KINDS: ActivityKind[] = ["CREDIT_ADJUSTED", "CREDIT_RESET"];
+
+const AUTH_KINDS: ActivityKind[] = ["USER_LOGIN", "ADMIN_LOGIN", "SIGNUP"];
+
+const QR_KINDS: ActivityKind[] = ["QR_CREATED", "QR_UPDATED", "QR_DELETED"];
+
+export async function clearActivityLogs(options: {
+  kinds?: ActivityKind[];
+  kind?: ActivityKind;
+  all?: boolean;
+}) {
+  if (options.all) {
+    const result = await prisma.activityLog.deleteMany({});
+    return result.count;
+  }
+  if (options.kind) {
+    const result = await prisma.activityLog.deleteMany({ where: { kind: options.kind } });
+    return result.count;
+  }
+  if (options.kinds?.length) {
+    const result = await prisma.activityLog.deleteMany({ where: { kind: { in: options.kinds } } });
+    return result.count;
+  }
+  return 0;
+}
+
+export function activityKindsForCategory(category: "payment" | "credit" | "auth" | "qr") {
+  if (category === "payment") return PAYMENT_KINDS;
+  if (category === "credit") return CREDIT_KINDS;
+  if (category === "auth") return AUTH_KINDS;
+  return QR_KINDS;
+}
