@@ -1,4 +1,5 @@
 import { requireAdminRouteAccess, userHasPermission } from "@/lib/tenant";
+import { UserRole } from "@/app/generated/prisma/client";
 import { AdminUsersPanel } from "@/components/admin/admin-users-panel";
 
 export default async function AdminUsersPage() {
@@ -10,6 +11,7 @@ export default async function AdminUsersPage() {
       canManageCredits={
         userHasPermission(user, "credits_manage") || userHasPermission(user, "organizations_manage")
       }
+      isSuperAdmin={user.role === UserRole.SUPER_ADMIN}
     />
   );
 }

@@ -138,6 +138,55 @@ export async function adminSetUnlimitedCredits(organizationId: string, enabled: 
   });
 }
 
+export async function transferCredits(
+  fromOrganizationId: string,
+  toOrganizationId: string,
+  amount: number,
+  description: string,
+  referenceId?: string,
+) {
+  if (amount <= 0) throw new Error("INVALID_AMOUNT");
+
+  return prisma.$transaction(async (tx) => {
+    const from = await tx.organization.findUniqueOrThrow({ where: { id: fromOrganizationId } });
+
+    if (!from.unlimitedCredits) {
+      if (from.credits < amount) throw new Error("INSUFFICIENT_CREDITS");
+      const fromUpdated = await tx.organization.update({
+        where: { id: fromOrganizationId },
+        data: { credits: { decrement: amount } },
+      });
+      await tx.creditTransaction.create({
+        data: {
+          organizationId: fromOrganizationId,
+          type: CreditTxType.TRANSFER,
+          amount: -amount,
+          balanceAfter: fromUpdated.credits,
+          description: `Müşteriye aktarım: ${description}`,
+          referenceId,
+        },
+      });
+    }
+
+    const toUpdated = await tx.organization.update({
+      where: { id: toOrganizationId },
+      data: { credits: { increment: amount } },
+    });
+    await tx.creditTransaction.create({
+      data: {
+        organizationId: toOrganizationId,
+        type: CreditTxType.TRANSFER,
+        amount,
+        balanceAfter: toUpdated.credits,
+        description,
+        referenceId,
+      },
+    });
+
+    return toUpdated;
+  });
+}
+
 export async function spendCredits(
   organizationId: string,
   amount: number,

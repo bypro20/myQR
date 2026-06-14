@@ -22,10 +22,12 @@ type User = {
 export function AdminUsersPanel({
   canManage = true,
   canManageCredits = false,
+  isSuperAdmin = false,
 }: {
   canManage?: boolean;
   canView?: boolean;
   canManageCredits?: boolean;
+  isSuperAdmin?: boolean;
 }) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,6 +92,35 @@ export function AdminUsersPanel({
     setEditId(null);
     setMessage("Kullanıcı güncellendi.");
     load();
+  }
+
+  async function setPartnerRole(user: User, asPartner: boolean) {
+    setMessage("");
+    const res = await fetch(`/api/admin/users/${user.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: asPartner ? "PARTNER" : "CUSTOMER" }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setMessage(data.error || "Rol güncellenemedi.");
+      return;
+    }
+    setMessage(asPartner ? `${user.name} iş ortağı olarak tanımlandı.` : `${user.name} normal müşteri olarak güncellendi.`);
+    load();
+  }
+
+  function roleLabel(role: string) {
+    if (role === "SUPER_ADMIN") return "Super Admin";
+    if (role === "PLATFORM_ADMIN") return "Yetkili";
+    if (role === "PARTNER") return "İş Ortağı";
+    return "Müşteri";
+  }
+
+  function roleBadgeVariant(role: string): "default" | "accent" | "muted" {
+    if (role === "SUPER_ADMIN") return "default";
+    if (role === "PLATFORM_ADMIN" || role === "PARTNER") return "accent";
+    return "muted";
   }
 
   async function toggleActive(user: User) {
@@ -211,8 +242,8 @@ export function AdminUsersPanel({
                         <p className="text-xs text-[var(--ink-muted)]">{u.email}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge variant={u.role === "SUPER_ADMIN" ? "default" : u.role === "PLATFORM_ADMIN" ? "accent" : "muted"}>
-                          {u.role === "SUPER_ADMIN" ? "Super Admin" : u.role === "PLATFORM_ADMIN" ? "Yetkili" : "Müşteri"}
+                        <Badge variant={roleBadgeVariant(u.role)}>
+                          {roleLabel(u.role)}
                         </Badge>
                       </td>
                       <td className="px-6 py-4">
@@ -222,7 +253,7 @@ export function AdminUsersPanel({
                       <td className="px-6 py-4 text-[var(--ink-muted)]">{formatDate(u.createdAt)}</td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-2">
-                          {canManageCredits && u.role === "CUSTOMER" ? (
+                          {canManageCredits && (u.role === "CUSTOMER" || u.role === "PARTNER") ? (
                             <Link href={`/admin/credits?user=${u.id}`}>
                               <Button variant="secondary" className="px-2 py-1 text-xs">
                                 <Coins className="h-3 w-3" />
@@ -230,7 +261,17 @@ export function AdminUsersPanel({
                               </Button>
                             </Link>
                           ) : null}
-                          {canManage && u.role === "CUSTOMER" ? (
+                          {isSuperAdmin && u.role === "CUSTOMER" ? (
+                            <Button variant="accent" className="px-2 py-1 text-xs" onClick={() => setPartnerRole(u, true)}>
+                              İş ortağı yap
+                            </Button>
+                          ) : null}
+                          {isSuperAdmin && u.role === "PARTNER" ? (
+                            <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => setPartnerRole(u, false)}>
+                              Müşteriye çevir
+                            </Button>
+                          ) : null}
+                          {canManage && (u.role === "CUSTOMER" || u.role === "PARTNER") ? (
                             <>
                               <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => startEdit(u)}>Düzenle</Button>
                               <Button variant={u.isActive ? "danger" : "secondary"} className="px-2 py-1 text-xs" onClick={() => toggleActive(u)}>

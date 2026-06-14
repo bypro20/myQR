@@ -51,7 +51,7 @@ const steps = [
   {
     step: "03",
     title: "Müşterilerinize panel açın",
-    desc: "Her müşteriniz için ayrı panel ve organizasyon oluşturun. QR kodları, analitik ve formlar kendi alanlarında yönetilir.",
+    desc: "Panelinizdeki Müşteri Panelleri bölümünden her müşteri için ayrı hesap oluşturun. Kredi stokunuzdan aktarın.",
     icon: Layers,
     gradient: "from-indigo-500 to-blue-700",
   },
@@ -156,7 +156,7 @@ export default function PanelKiralamaPage() {
                   </p>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--ink-muted)]">
                     Fiyatlandırma sayfasındaki paketler son kullanıcı içindir. Siz indirimli toptan kredi alır,
-                    müşterilerinize kendi panelinizi açar ve kendi fiyatınızla satarsınız.
+                    panelinizden müşteri hesapları açar ve kendi fiyatınızla satarsınız.
                   </p>
                 </div>
               </div>

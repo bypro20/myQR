@@ -18,6 +18,7 @@ const dashboardTitles: Record<string, { title: string; subtitle: string }> = {
   "/dashboard/lcv": { title: "LCV", subtitle: "Davetiye yanıtlarını kolayca toplayın" },
   "/dashboard/bulk": { title: "Toplu Üretim", subtitle: "CSV ile yüzlerce QR kodu tek seferde" },
   "/dashboard/stats": { title: "İstatistikler", subtitle: "Kendi QR kodlarınıza ait özet tarama verileri" },
+  "/dashboard/customers": { title: "Müşteri Panelleri", subtitle: "Müşterilerinize panel açın ve kredi yönetin" },
 };
 
 const adminTitles: Record<string, { title: string; subtitle: string }> = {
@@ -37,12 +38,14 @@ export function DashboardShell({
   children,
   credits = 0,
   unlimitedCredits = false,
+  isPartner = false,
   showAdminNotifications = false,
   variant = "dashboard",
 }: {
   children: React.ReactNode;
   credits?: number;
   unlimitedCredits?: boolean;
+  isPartner?: boolean;
   showAdminNotifications?: boolean;
   variant?: "dashboard" | "admin";
 }) {
@@ -64,7 +67,7 @@ export function DashboardShell({
       {variant === "admin" ? (
         <AdminPlatformSidebar variant="desktop" />
       ) : (
-        <AdminSidebar credits={credits} unlimitedCredits={unlimitedCredits} variant="desktop" />
+        <AdminSidebar credits={credits} unlimitedCredits={unlimitedCredits} isPartner={isPartner} variant="desktop" />
       )}
 
       {open ? (
@@ -77,6 +80,7 @@ export function DashboardShell({
               <AdminSidebar
                 credits={credits}
                 unlimitedCredits={unlimitedCredits}
+                isPartner={isPartner}
                 variant="mobile"
                 onNavigate={() => setOpen(false)}
               />

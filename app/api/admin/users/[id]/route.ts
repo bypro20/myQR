@@ -10,6 +10,7 @@ const patchSchema = z.object({
   email: z.string().email().optional(),
   isActive: z.boolean().optional(),
   newPassword: z.string().min(8).max(128).optional(),
+  role: z.enum([UserRole.CUSTOMER, UserRole.PARTNER]).optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -29,6 +30,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Admin hesapları buradan düzenlenemez. Yetkili Yönetimi sayfasını kullanın." }, { status: 400 });
     }
 
+    if (body.role && auth.user.role !== UserRole.SUPER_ADMIN) {
+      return NextResponse.json({ error: "Rol değişikliği yalnızca süper admin tarafından yapılabilir." }, { status: 403 });
+    }
+
     if (body.isActive === false && target.id === auth.user.id) {
       return NextResponse.json({ error: "Kendi hesabınızı devre dışı bırakamazsınız." }, { status: 400 });
     }
@@ -46,6 +51,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.email) data.email = body.email.toLowerCase().trim();
     if (body.isActive !== undefined) data.isActive = body.isActive;
     if (body.newPassword) data.passwordHash = await hashPassword(body.newPassword);
+    if (body.role) data.role = body.role;
 
     const user = await prisma.user.update({
       where: { id },
@@ -62,7 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
 
     if (target.id === auth.user.id) {
-      await refreshSession({ email: user.email });
+      await refreshSession({ email: user.email, systemRole: user.role });
     }
 
     return NextResponse.json({ ok: true, user });

@@ -10,6 +10,7 @@ datasource db {
 enum UserRole {
   SUPER_ADMIN
   PLATFORM_ADMIN
+  PARTNER
   CUSTOMER
 }
 
@@ -40,6 +41,7 @@ enum CreditTxType {
   REFUND
   ADMIN
   SUBSCRIPTION
+  TRANSFER
 }
 
 enum PaymentStatus {
@@ -159,6 +161,9 @@ model Organization {
   id                 String             @id @default(cuid())
   name               String
   slug               String             @unique
+  parentOrganizationId String?
+  parentOrganization   Organization?    @relation("OrgHierarchy", fields: [parentOrganizationId], references: [id], onDelete: SetNull)
+  childOrganizations   Organization[]   @relation("OrgHierarchy")
   planTier           PlanTier           @default(FREE)
   subscriptionStatus SubscriptionStatus @default(TRIAL)
   trialEndsAt        DateTime?

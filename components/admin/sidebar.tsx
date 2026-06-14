@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Upload,
   Sparkles,
+  Users,
   X,
 } from "lucide-react";
 import { cn, formatCreditsDisplay } from "@/lib/utils";
@@ -53,14 +54,23 @@ const groups: { title: string; items: NavItem[] }[] = [
   },
 ];
 
+const partnerGroup: { title: string; items: NavItem[] } = {
+  title: "İş Ortağı",
+  items: [
+    { href: "/dashboard/customers", label: "Müşteri Panelleri", hint: "Panel aç, kredi aktar", icon: Users, accent: "from-indigo-500 to-violet-600" },
+  ],
+};
+
 export function AdminSidebar({
   credits = 0,
   unlimitedCredits = false,
+  isPartner = false,
   variant = "desktop",
   onNavigate,
 }: {
   credits?: number;
   unlimitedCredits?: boolean;
+  isPartner?: boolean;
   variant?: "desktop" | "mobile";
   onNavigate?: () => void;
 }) {
@@ -139,7 +149,7 @@ export function AdminSidebar({
       </div>
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
-        {groups.map((group) => (
+        {(isPartner ? [partnerGroup, ...groups] : groups).map((group) => (
           <div key={group.title}>
             <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-white/35">{group.title}</p>
             <div className="space-y-1">
