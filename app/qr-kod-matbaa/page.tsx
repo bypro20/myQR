@@ -1,6 +1,7 @@
 import { buildMetadata } from "@/lib/seo/metadata";
 import { landingPageJsonLd, freeTrialNote } from "@/lib/seo/json-ld";
 import { SeoLandingLayout } from "@/components/seo/seo-landing-layout";
+import { MARKETING_IMAGES } from "@/lib/marketing/visuals";
 
 const DESCRIPTION =
   "Matbaa ve baskı atölyeleri için QR kod platformu. Toplu üretim, kalıcı QR lisansı, müşteri paneli ve indirimli bayi kredisi. QR hizmetinizi ölçeklendirin.";
@@ -62,6 +63,18 @@ export default function QrKodMatbaaPage() {
         faqs,
       })}
       primaryCta="Matbaa hesabı aç"
+      heroImage={{
+        src: MARKETING_IMAGES.printHouse,
+        alt: "Matbaa QR kod üretim hattı ve abonelik kiti",
+        caption: "Bir kez basın, sürekli gelir — matbaa için QR abonelik modeli",
+      }}
+      showcaseImage={{
+        src: MARKETING_IMAGES.qrRevenue,
+        alt: "QR kodlarınızı gelir kaynağına dönüştürün",
+        title: "Matbaanızı geleceğe taşıyın",
+        subtitle: "Toplu üretim, müşteri paneli ve sürekli gelir modeli.",
+        caption: "Müşterilerinize QR hizmeti sunun, her yenilemede tekrarlayan gelir elde edin",
+      }}
     />
   );
 }

@@ -1,6 +1,7 @@
 import { buildMetadata } from "@/lib/seo/metadata";
 import { landingPageJsonLd, freeTrialNote } from "@/lib/seo/json-ld";
 import { SeoLandingLayout } from "@/components/seo/seo-landing-layout";
+import { MARKETING_IMAGES } from "@/lib/marketing/visuals";
 
 const DESCRIPTION =
   "Dinamik QR kod ile baskıyı yenilemeden hedefi güncelleyin. Menü, kampanya ve kartvizit için profesyonel QR platformu. Canlı analitik ve süre paketleri.";
@@ -61,6 +62,11 @@ export default function DinamikQrKodPage() {
         description: DESCRIPTION,
         faqs,
       })}
+      heroImage={{
+        src: MARKETING_IMAGES.campaignWarehouse,
+        alt: "Kampanya QR, WhatsApp ve ödeme QR yönetimi",
+        caption: "Kampanya, WhatsApp ve ödeme QR — tek platformda",
+      }}
     />
   );
 }

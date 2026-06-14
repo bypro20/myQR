@@ -10,6 +10,9 @@ import { ContactInfoPanel } from "@/components/site/contact-info-panel";
 import { HowItWorksSection } from "@/components/site/how-it-works-section";
 import { LaunchCtaSection } from "@/components/site/launch-cta-section";
 import { UseCasesSection } from "@/components/site/use-cases-section";
+import { MarketingVisual } from "@/components/site/marketing-visual";
+import { MarketingShowcaseSection } from "@/components/site/marketing-showcase-section";
+import { MARKETING_IMAGES } from "@/lib/marketing/visuals";
 import { QrLifecyclePricing } from "@/components/billing/qr-lifecycle-pricing";
 import { IconBadge } from "@/components/site/icon-badge";
 import { PlanCard } from "@/components/site/plan-card";
@@ -117,39 +120,15 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="relative animate-fade-up" style={{ animationDelay: "0.12s" }}>
-              <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-fuchsia-500/30 via-purple-500/20 to-cyan-400/30 blur-2xl" />
-              <div className="card-glass relative animate-pulse-glow p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-fuchsia-200/80">Örnek panel</span>
-                  <span className="rounded-full bg-emerald-400/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300 ring-1 ring-emerald-400/30">● Aktif</span>
-                </div>
-                <div className="mt-6 grid grid-cols-3 gap-3">
-                  {[
-                    { label: "QR", value: "12", color: "from-violet-400 to-fuchsia-500" },
-                    { label: "Tarama", value: "840", color: "from-cyan-400 to-blue-500" },
-                    { label: "Kredi", value: `${signupCredits}`, color: "from-orange-400 to-pink-500" },
-                  ].map((s) => (
-                    <div key={s.label} className="rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur-sm">
-                      <div className={`mb-2 h-1 w-8 rounded-full bg-gradient-to-r ${s.color}`} />
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{s.label}</p>
-                      <p className="text-xl font-extrabold">{s.value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1a0a2e] to-[#0c0118] p-5 shadow-inner">
-                  <div className="mx-auto grid h-28 w-28 grid-cols-5 gap-1 p-2">
-                    {Array.from({ length: 25 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={`rounded-sm ${[0, 1, 2, 4, 5, 6, 10, 12, 14, 18, 20, 22, 24].includes(i) ? "bg-gradient-to-br from-white to-fuchsia-200" : "bg-transparent"}`}
-                      />
-                    ))}
-                  </div>
-                  <p className="mt-3 text-center text-xs font-medium text-fuchsia-200/70">Restoran menüsü · Dinamik QR</p>
-                </div>
-                <p className="mt-3 text-center text-[10px] text-slate-500">* Örnek arayüz — gerçek veriler panelinizde görünür</p>
-              </div>
+            <div className="animate-fade-up" style={{ animationDelay: "0.12s" }}>
+              <MarketingVisual
+                src={MARKETING_IMAGES.heroDashboard}
+                alt="myQR profesyonel QR kod yönetim paneli — canlı analitik ve dinamik QR"
+                caption="Canlı analitik, dinamik QR ve bayi paneli — tek ekranda"
+                frame="hero"
+                priority
+                align="right"
+              />
             </div>
           </div>
         </section>
@@ -184,6 +163,8 @@ export default async function HomePage() {
           </div>
         </section>
 
+        <MarketingShowcaseSection />
+
         <UseCasesSection />
 
         <section className="section-pad border-y border-[var(--line)] bg-white">
@@ -198,8 +179,15 @@ export default async function HomePage() {
         </section>
 
         <section className="section-pad border-b border-[var(--line)] bg-white">
-          <div className="site-container flex flex-col items-start gap-8 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-2xl">
+          <div className="site-container grid items-center gap-12 lg:grid-cols-2">
+            <MarketingVisual
+              src={MARKETING_IMAGES.qrRevenue}
+              alt="QR kodlarınızı gelir kaynağına dönüştürün — dinamik QR ve bayilik sistemi"
+              caption="Müşterilerinize QR hizmeti sunun, her yenilemede tekrarlayan gelir elde edin"
+              frame="showcase"
+              align="left"
+            />
+            <div>
               <span className="section-badge">
                 <Users className="h-3.5 w-3.5" />
                 İş ortağı programı
@@ -212,10 +200,10 @@ export default async function HomePage() {
                 myQR panelimizden çalışın: indirimli toptan kredi alın, her müşterinize ayrı panel açın,
                 kendi fiyatınızla QR hizmeti sunun.
               </p>
+              <Link href="/panel-kiralama" className="btn-brand mt-8 px-6 py-3.5">
+                Panel kiralama detayları <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
-            <Link href="/panel-kiralama" className="btn-brand shrink-0 px-6 py-3.5">
-              Panel kiralama detayları <ArrowRight className="h-4 w-4" />
-            </Link>
           </div>
         </section>
 
@@ -265,6 +253,15 @@ export default async function HomePage() {
                 ))}
               </ul>
             </div>
+            <MarketingVisual
+              src={MARKETING_IMAGES.enterpriseSecurity}
+              alt="Kurumsal güvenlik — tenant izolasyonu, JWT ve BCrypt koruması"
+              caption="Kiracı veri izolasyonu ve kurumsal güvenlik altyapısı"
+              frame="showcase"
+              align="right"
+            />
+          </div>
+          <div className="site-container mt-12 lg:max-w-xl lg:ml-auto">
             <div className="card-glow p-8">
               <p className="font-bold text-[var(--ink)]">Şeffaf kredi modeli</p>
               <p className="mt-1 text-sm text-[var(--ink-muted)]">Ne kadar harcadığınızı her zaman bilin.</p>

@@ -1,6 +1,7 @@
 import { buildMetadata } from "@/lib/seo/metadata";
 import { landingPageJsonLd, freeTrialNote } from "@/lib/seo/json-ld";
 import { SeoLandingLayout } from "@/components/seo/seo-landing-layout";
+import { MARKETING_IMAGES } from "@/lib/marketing/visuals";
 
 const DESCRIPTION =
   "Restoran ve kafe için dijital menü QR kodu. Dinamik menü linki, tarama analitiği ve aylık/yıllık süre paketleri. Menüyü baskıyı yenilemeden güncelleyin.";
@@ -62,6 +63,11 @@ export default function RestoranMenuQrPage() {
         faqs,
       })}
       primaryCta="Menü QR oluştur"
+      heroImage={{
+        src: MARKETING_IMAGES.restaurantMenu,
+        alt: "Restoran menü QR kodu — dijital menü ve anında güncelleme",
+        caption: "Masada QR ile dijital menü — baskıyı yenilemeden güncelleyin",
+      }}
     />
   );
 }

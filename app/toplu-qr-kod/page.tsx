@@ -1,6 +1,7 @@
 import { buildMetadata } from "@/lib/seo/metadata";
 import { landingPageJsonLd, freeTrialNote } from "@/lib/seo/json-ld";
 import { SeoLandingLayout } from "@/components/seo/seo-landing-layout";
+import { MARKETING_IMAGES } from "@/lib/marketing/visuals";
 
 const DESCRIPTION =
   "CSV ile yüzlerce QR kodu tek seferde oluşturun, ZIP indirin. Matbaa ve ajanslar için toplu QR üretim platformu — dinamik ve statik kod desteği.";
@@ -61,6 +62,11 @@ export default function TopluQrKodPage() {
         description: DESCRIPTION,
         faqs,
       })}
+      heroImage={{
+        src: MARKETING_IMAGES.printHouse,
+        alt: "Toplu QR üretim ve matbaa entegrasyonu",
+        caption: "CSV → toplu üretim → ZIP — matbaa sürecine hazır",
+      }}
     />
   );
 }

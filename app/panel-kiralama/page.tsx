@@ -18,9 +18,10 @@ import {
 } from "lucide-react";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
-import { PageHero } from "@/components/site/page-hero";
 import { IconBadge } from "@/components/site/icon-badge";
+import { MarketingVisual } from "@/components/site/marketing-visual";
 import { PartnerInquiryForm } from "@/components/site/partner-inquiry-form";
+import { MARKETING_IMAGES } from "@/lib/marketing/visuals";
 import { buildWhatsAppUrl, formatWhatsAppDisplay, getPartnerWhatsAppMessage } from "@/lib/site-contact";
 import { buildMetadata } from "@/lib/seo/metadata";
 
@@ -109,22 +110,37 @@ export default function PanelKiralamaPage() {
       <SiteHeader />
 
       <main>
-        <PageHero
-          align="left"
-          badge={
-            <span className="eyebrow-dark">
-              <Users className="h-3.5 w-3.5" />
-              İş ortağı · Panel kiralama
-            </span>
-          }
-          title={
-            <>
-              Panelinizi{" "}
-              <span className="text-gradient">kiralayın</span>, müşterilerinize satın
-            </>
-          }
-          subtitle="myQR altyapısıyla kendi QR işinizi kurun. Panel kiralayan iş ortaklarına kredilerde özel indirim — toptan iş ortağı fiyatlandırması."
-        />
+        <section className="page-hero relative overflow-hidden border-b border-white/10">
+          <div className="aurora">
+            <div className="aurora-orb aurora-orb-1" />
+            <div className="aurora-orb aurora-orb-2" />
+            <div className="aurora-orb aurora-orb-3" />
+          </div>
+          <div className="site-grid-bg absolute inset-0 opacity-[0.08]" />
+          <div className="site-container relative grid items-center gap-12 py-16 lg:grid-cols-2 lg:gap-16 lg:py-24">
+            <div>
+              <span className="eyebrow-dark">
+                <Users className="h-3.5 w-3.5" />
+                İş ortağı · Panel kiralama
+              </span>
+              <h1 className="mt-6 text-4xl font-extrabold leading-[1.08] tracking-tight text-balance text-white sm:text-5xl lg:text-[3.25rem]">
+                Panelinizi{" "}
+                <span className="text-gradient">kiralayın</span>, müşterilerinize satın
+              </h1>
+              <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-300/90">
+                myQR altyapısıyla kendi QR işinizi kurun. Panel kiralayan iş ortaklarına kredilerde özel indirim — toptan iş ortağı fiyatlandırması.
+              </p>
+            </div>
+            <MarketingVisual
+              src={MARKETING_IMAGES.whiteLabelPartner}
+              alt="White-label QR iş ortağı programı — kendi QR işinizi başlatın"
+              caption="Her müşteri için ayrı panel, kendi fiyatınızla satış"
+              frame="hero"
+              priority
+              align="right"
+            />
+          </div>
+        </section>
 
         <section className="section-pad">
           <div className="site-container grid items-start gap-12 lg:grid-cols-2">
@@ -232,30 +248,40 @@ export default function PanelKiralamaPage() {
         </section>
 
         <section className="section-pad">
-          <div className="site-container grid items-center gap-12 lg:grid-cols-2">
-            <div>
-              <h2 className="section-title text-[var(--ink)]">
-                Siz satışa odaklanın, <span className="text-gradient">gerisini biz halledelim</span>
-              </h2>
-              <ul className="mt-6 space-y-3">
-                {benefits.map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-sm text-[var(--ink-muted)]">
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--brand)]" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href={buildWhatsAppUrl(getPartnerWhatsAppMessage("pricing"))}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-whatsapp mt-8"
-              >
-                <MessageCircle className="h-4 w-4" />
-                WhatsApp ile teklif al
-              </a>
+          <div className="site-container">
+            <div className="grid items-start gap-12 lg:grid-cols-2">
+              <MarketingVisual
+                src={MARKETING_IMAGES.qrRevenue}
+                alt="QR kodlarınızı gelir kaynağına dönüştürün — bayilik sistemi"
+                caption="Dinamik QR, canlı analiz ve sürekli gelir modeli"
+                frame="showcase"
+                align="left"
+              />
+              <div>
+                <h2 className="section-title text-[var(--ink)]">
+                  Siz satışa odaklanın, <span className="text-gradient">gerisini biz halledelim</span>
+                </h2>
+                <ul className="mt-6 space-y-3">
+                  {benefits.map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-sm text-[var(--ink-muted)]">
+                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--brand)]" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href={buildWhatsAppUrl(getPartnerWhatsAppMessage("pricing"))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-whatsapp mt-8"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp ile teklif al
+                </a>
+              </div>
             </div>
-            <div className="card-elevated p-8">
+            <div className="mx-auto mt-10 max-w-lg">
+              <div className="card-elevated p-8">
               <p className="font-bold text-[var(--ink)]">İş ortağı fiyatlandırması</p>
               <p className="mt-1 text-sm text-[var(--ink-muted)]">Paket sayfası değil — indirimli toptan kredi modeli.</p>
               <div className="mt-5 space-y-3">
@@ -270,6 +296,7 @@ export default function PanelKiralamaPage() {
                     <span className={`font-bold ${row.tone}`}>{row.val}</span>
                   </div>
                 ))}
+              </div>
               </div>
             </div>
           </div>
