@@ -31,7 +31,7 @@ function redirectToCanonical(req: NextRequest) {
   return NextResponse.redirect(url, 308);
 }
 
-function rateLimit(ip: string, limit = 120, windowMs = 60_000) {
+function rateLimit(ip: string, limit = 300, windowMs = 60_000) {
   const now = Date.now();
   const entry = rateMap.get(ip);
   if (!entry || now > entry.reset) {

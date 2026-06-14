@@ -107,7 +107,7 @@ export function AdminNotificationProvider({ children }: { children: React.ReactN
   const refresh = useCallback(async () => {
     if (!enabled) return;
     const since = lastPollRef.current;
-    const res = await fetch(`/api/admin/notifications?since=${encodeURIComponent(since)}`, {
+    const res = await fetch(`/api/admin/notifications?lite=1&since=${encodeURIComponent(since)}`, {
       cache: "no-store",
     });
     if (!res.ok) return;
@@ -156,9 +156,22 @@ export function AdminNotificationProvider({ children }: { children: React.ReactN
 
   useEffect(() => {
     if (!enabled) return;
-    void refresh();
-    const id = window.setInterval(() => void refresh(), 8_000);
-    return () => window.clearInterval(id);
+
+    const poll = () => {
+      if (document.hidden) return;
+      void refresh();
+    };
+
+    poll();
+    const id = window.setInterval(poll, 30_000);
+    const onVisible = () => {
+      if (!document.hidden) void refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [enabled, refresh]);
 
   const pendingCount = stats?.pendingCount ?? pending.length;

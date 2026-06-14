@@ -98,8 +98,20 @@ export function AdminActivityPanel() {
 
   useEffect(() => {
     if (!live) return;
-    const id = window.setInterval(() => void load(), 15_000);
-    return () => window.clearInterval(id);
+    const poll = () => {
+      if (document.hidden) return;
+      void load();
+    };
+    poll();
+    const id = window.setInterval(poll, 30_000);
+    const onVisible = () => {
+      if (!document.hidden) void load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [live, load]);
 
   const filtered = useMemo(() => {

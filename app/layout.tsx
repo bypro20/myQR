@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { GoogleTags } from "@/components/analytics/google-tags";
-import { guLiveChatHeadScripts } from "@/components/site/gu-live-chat";
+import { GuLiveChatLoader } from "@/components/site/gu-live-chat-loader";
 import { SiteShield } from "@/components/security/site-shield";
 import { JsonLdScript } from "@/components/seo/json-ld";
 import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/json-ld";
@@ -31,9 +31,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr" className={`${jakarta.variable} h-full`}>
-      <head>{guLiveChatHeadScripts()}</head>
+      <head>
+        <link rel="preconnect" href="https://www.gulivechat.com" />
+        <link rel="dns-prefetch" href="https://www.gulivechat.com" />
+      </head>
       <body className="min-h-full antialiased">
         <GoogleTags />
+        <GuLiveChatLoader />
         <JsonLdScript data={[organizationJsonLd(), webSiteJsonLd()]} />
         <SiteShield>{children}</SiteShield>
       </body>

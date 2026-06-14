@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Bell,
@@ -87,14 +87,19 @@ export function AdminSalesPanel() {
   const [error, setError] = useState("");
   const [resetWord, setResetWord] = useState("");
   const [showResetModal, setShowResetModal] = useState(false);
+  const meLoadedRef = useRef(false);
 
   const load = useCallback(async () => {
     try {
-      const [paymentsRes, notifRes, meRes] = await Promise.all([
-        fetch("/api/admin/payments?limit=300", { cache: "no-store" }),
-        fetch("/api/admin/notifications", { cache: "no-store" }),
-        fetch("/api/admin/me", { cache: "no-store" }),
-      ]);
+      const requests: Promise<Response>[] = [
+        fetch("/api/admin/payments?limit=80", { cache: "no-store" }),
+        fetch("/api/admin/payments/stats", { cache: "no-store" }),
+      ];
+      if (!meLoadedRef.current) {
+        requests.push(fetch("/api/admin/me", { cache: "no-store" }));
+      }
+
+      const [paymentsRes, statsRes, meRes] = await Promise.all(requests);
 
       if (paymentsRes.ok) {
         const data = await paymentsRes.json();
@@ -108,8 +113,8 @@ export function AdminSalesPanel() {
         setPayments(rows);
       }
 
-      if (notifRes.ok) {
-        const data = await notifRes.json();
+      if (statsRes.ok) {
+        const data = await statsRes.json();
         if (data.stats) {
           setStats({
             fastClaimedCount: data.stats.fastClaimedCount ?? 0,
@@ -120,9 +125,10 @@ export function AdminSalesPanel() {
         }
       }
 
-      if (meRes.ok) {
+      if (meRes?.ok) {
         const me = await meRes.json();
         setIsSuperAdmin(me.isSuperAdmin === true);
+        meLoadedRef.current = true;
       }
     } catch {
       setError("Veriler yüklenemedi. Sayfayı yenileyin.");
@@ -132,9 +138,21 @@ export function AdminSalesPanel() {
   }, []);
 
   useEffect(() => {
-    void load();
-    const id = window.setInterval(() => void load(), 12_000);
-    return () => window.clearInterval(id);
+    const poll = () => {
+      if (document.hidden) return;
+      void load();
+    };
+
+    poll();
+    const id = window.setInterval(poll, 45_000);
+    const onVisible = () => {
+      if (!document.hidden) void load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [load]);
 
   const filtered = useMemo(() => {

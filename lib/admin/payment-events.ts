@@ -166,9 +166,22 @@ export async function fetchPendingPaymentEvents() {
       status: { in: [PaymentStatus.PENDING, PaymentStatus.AWAITING_CONFIRMATION] },
     },
     orderBy: { createdAt: "desc" },
+    take: 40,
     include: orderInclude,
   });
   return sortPendingOrders(orders).map(mapPaymentOrderToEvent);
+}
+
+export async function fetchRecentPaymentEventsSince(since: Date, limit = 12) {
+  const orders = await prisma.paymentOrder.findMany({
+    where: {
+      OR: [{ createdAt: { gt: since } }, { completedAt: { gt: since } }],
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: orderInclude,
+  });
+  return orders.map(mapPaymentOrderToEvent).filter((e) => isEventAfterSince(e, since));
 }
 
 export async function fetchAdminSalesStats() {
