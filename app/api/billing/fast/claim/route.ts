@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { PaymentStatus } from "@/app/generated/prisma/client";
+import { getOrderType } from "@/lib/billing/order-catalog";
 import { requireTenantApi } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 
@@ -48,7 +49,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       message:
-        "Ödeme bildiriminiz alındı. FAST transferi kontrol edildikten sonra krediler yüklenecektir.",
+        getOrderType(order.packageId) === "subscription"
+          ? "Ödeme bildiriminiz alındı. FAST transferi kontrol edildikten sonra aboneliğiniz aktif edilecektir."
+          : "Ödeme bildiriminiz alındı. FAST transferi kontrol edildikten sonra krediler yüklenecektir.",
     });
   } catch {
     return NextResponse.json({ error: "İşlem başarısız." }, { status: 400 });

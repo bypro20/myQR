@@ -22,6 +22,8 @@ type OrderInfo = {
   packageName: string;
   referenceCode: string;
   status: string;
+  orderType?: "credits" | "subscription";
+  period?: string;
 };
 
 type BankInfo = {
@@ -80,6 +82,11 @@ export function UnifiedPaymentCheckout({
   const [messageTone, setMessageTone] = useState<"success" | "info" | "error">("info");
   const awaiting = order.status === "AWAITING_CONFIRMATION";
   const completed = order.status === "COMPLETED";
+  const isSubscription = order.orderType === "subscription";
+
+  const summaryLine = isSubscription
+    ? `${order.packageName} · ${order.credits.toLocaleString("tr-TR")} kredi / ${order.period ?? "ay"} · `
+    : `${order.packageName} · ${order.credits.toLocaleString("tr-TR")} kredi · `;
 
   async function payWithCard() {
     if (!legalAccepted) {
@@ -145,7 +152,7 @@ export function UnifiedPaymentCheckout({
       <div className="rounded-2xl border border-violet-100 bg-white p-6 shadow-md">
         <h1 className="text-2xl font-bold text-[var(--ink)]">Ödeme</h1>
         <p className="mt-2 text-sm text-[var(--ink-muted)]">
-          {order.packageName} · {order.credits.toLocaleString("tr-TR")} kredi ·{" "}
+          {summaryLine}
           <strong className="text-[var(--ink)]">{order.amountTry.toLocaleString("tr-TR")} ₺</strong>
         </p>
       </div>
@@ -165,7 +172,9 @@ export function UnifiedPaymentCheckout({
 
       {completed ? (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
-          Ödeme onaylandı, krediler hesabınıza yüklendi.
+          {isSubscription
+            ? "Ödeme onaylandı, aboneliğiniz aktif edildi ve aylık krediler yüklendi."
+            : "Ödeme onaylandı, krediler hesabınıza yüklendi."}
         </div>
       ) : (
         <div className="space-y-6">

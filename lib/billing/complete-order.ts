@@ -1,8 +1,13 @@
 import { CreditTxType, PaymentStatus } from "@/app/generated/prisma/client";
 import { getCreditPackage } from "@/lib/billing/packages";
+import {
+  getOrderLabel,
+  getOrderPlan,
+  isSubscriptionPackageId,
+} from "@/lib/billing/order-catalog";
 import { prisma } from "@/lib/prisma";
 
-/** Idempotent: credits are added only once when payment is confirmed. */
+/** Idempotent: credits / subscription are applied only once when payment is confirmed. */
 export async function completePaymentOrder(
   orderId: string,
   providerRef?: string,
@@ -25,8 +30,10 @@ export async function completePaymentOrder(
       throw new Error("ORDER_NOT_PAYABLE");
     }
 
-    const pkg = getCreditPackage(order.packageId);
-    const label = pkg?.name ?? order.packageId;
+    const label = getOrderLabel(order.packageId);
+    const subscriptionPlan = isSubscriptionPackageId(order.packageId)
+      ? getOrderPlan(order.packageId)
+      : null;
 
     const updated = await tx.paymentOrder.update({
       where: { id: order.id },
@@ -36,6 +43,33 @@ export async function completePaymentOrder(
         ...(providerRef ? { providerRef } : {}),
       },
     });
+
+    if (subscriptionPlan) {
+      const org = await tx.organization.update({
+        where: { id: order.organizationId },
+        data: {
+          planTier: subscriptionPlan.id,
+          subscriptionStatus: "ACTIVE",
+          trialEndsAt: null,
+          credits: { increment: subscriptionPlan.creditsMonthly },
+        },
+      });
+
+      await tx.creditTransaction.create({
+        data: {
+          organizationId: order.organizationId,
+          type: CreditTxType.PURCHASE,
+          amount: subscriptionPlan.creditsMonthly,
+          balanceAfter: org.credits,
+          description: `${subscriptionPlan.name} abonelik · ilk ay kredisi`,
+          referenceId: order.id,
+        },
+      });
+
+      return { order: updated, alreadyCompleted: false as const };
+    }
+
+    const pkg = getCreditPackage(order.packageId);
 
     const org = await tx.organization.update({
       where: { id: order.organizationId },
@@ -48,7 +82,7 @@ export async function completePaymentOrder(
         type: CreditTxType.PURCHASE,
         amount: order.credits,
         balanceAfter: org.credits,
-        description: `${label} kredi paketi`,
+        description: `${pkg?.name ?? label} kredi paketi`,
         referenceId: order.id,
       },
     });

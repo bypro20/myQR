@@ -13,15 +13,13 @@ import {
 } from "lucide-react";
 import { getEffectivePlanTier } from "@/lib/billing/pricing-config";
 import { CREDIT_PACKAGES } from "@/lib/billing/packages";
-import { PLANS, getPlan } from "@/lib/plans";
+import { PLANS, getPlan, type PlanTier } from "@/lib/plans";
 import { PLAN_THEMES } from "@/lib/marketing/theme";
 import { CreditPackageCard } from "@/components/site/credit-package-card";
 import { BillingConversion } from "@/components/analytics/billing-conversion";
 import { QrLifecyclePricing } from "@/components/billing/qr-lifecycle-pricing";
 import { IconBadge } from "@/components/site/icon-badge";
 import { PlanCard } from "@/components/site/plan-card";
-import { Badge } from "@/components/ui/badge";
-import { buildWhatsAppUrl } from "@/lib/site-contact";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -128,10 +126,29 @@ export function BillingPanel({ organization, paymentNotice, paymentMessage }: Pr
     router.refresh();
   }
 
-  function upgradeHref(planName: string) {
-    return buildWhatsAppUrl(
-      `Merhaba, myQR ${planName} abonelik planına geçmek istiyorum. Organizasyon: ${organization.name}`,
-    );
+  async function buyPlan(planId: PlanTier) {
+    if (planId === "FREE") return;
+    setLoading(planId);
+    setMessage("");
+    const res = await fetch("/api/billing", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planId }),
+    });
+    const data = await res.json();
+    setLoading(null);
+
+    if (data.checkoutUrl) {
+      window.location.href = data.checkoutUrl;
+      return;
+    }
+
+    if (!res.ok) {
+      setMessageTone("error");
+      setMessage(data.error || "Ödeme başlatılamadı. Lütfen tekrar deneyin.");
+      setTab("subscription");
+      return;
+    }
   }
 
   return (
@@ -265,7 +282,7 @@ export function BillingPanel({ organization, paymentNotice, paymentMessage }: Pr
               <h2 className="text-xl font-bold text-violet-950">Abonelik planları</h2>
             </div>
             <p className="mt-1 max-w-2xl text-sm text-slate-500">
-              Aylık planınız kredi limiti ve modül erişimini belirler. Yükseltme talebi destek üzerinden onaylanır.
+              Aylık planınız kredi limiti ve modül erişimini belirler. Kart veya FAST ile anında yükseltin.
             </p>
           </div>
 
@@ -277,9 +294,9 @@ export function BillingPanel({ organization, paymentNotice, paymentMessage }: Pr
                   key={p.id}
                   plan={p}
                   isCurrent={isCurrent}
-                  ctaHref={isCurrent ? "#" : upgradeHref(p.name)}
-                  ctaLabel={isCurrent ? "Aktif planınız" : "Plan yükseltme talebi"}
-                  ctaExternal={!isCurrent}
+                  ctaOnClick={isCurrent ? undefined : () => buyPlan(p.id)}
+                  ctaLoading={loading === p.id}
+                  ctaLabel={isCurrent ? "Aktif planınız" : "Ödeme Yap"}
                 />
               );
             })}

@@ -12,6 +12,8 @@ type Props = {
   compact?: boolean;
   isCurrent?: boolean;
   ctaExternal?: boolean;
+  ctaOnClick?: () => void;
+  ctaLoading?: boolean;
 };
 
 export function PlanCard({
@@ -21,6 +23,8 @@ export function PlanCard({
   compact,
   isCurrent = false,
   ctaExternal = false,
+  ctaOnClick,
+  ctaLoading = false,
 }: Props) {
   const theme = PLAN_THEMES[plan.id] ?? PLAN_THEMES.STARTER;
 
@@ -84,6 +88,20 @@ export function PlanCard({
         <span className="mt-6 block cursor-default rounded-xl border border-emerald-200 bg-emerald-50 py-3 text-center text-sm font-bold text-emerald-800">
           Aktif planınız
         </span>
+      ) : ctaOnClick ? (
+        <button
+          type="button"
+          onClick={ctaOnClick}
+          disabled={ctaLoading}
+          className={cn(
+            "mt-6 block w-full cursor-pointer rounded-xl py-3 text-center text-sm font-bold transition disabled:cursor-wait disabled:opacity-60",
+            plan.highlight
+              ? "btn-brand !flex justify-center"
+              : "border border-[#e9d5ff] bg-gradient-to-b from-white to-[#faf5ff] text-[var(--ink)] hover:border-fuchsia-300 hover:shadow-md",
+          )}
+        >
+          {ctaLoading ? "Yönlendiriliyor…" : ctaLabel}
+        </button>
       ) : (
         <Link
           href={ctaHref}

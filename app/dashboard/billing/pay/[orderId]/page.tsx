@@ -2,9 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { PaymentStatus } from "@/app/generated/prisma/client";
 import { UnifiedPaymentCheckout } from "@/components/billing/unified-payment-checkout";
 import { buildFastOrderMeta } from "@/lib/billing/fast/config";
-import { getCreditPackage } from "@/lib/billing/packages";
 import { getFastPaymentConfig } from "@/lib/billing/fast/config";
 import { fastReferenceCode } from "@/lib/billing/fast/reference";
+import { getOrderLabel, getOrderPlan, getOrderType } from "@/lib/billing/order-catalog";
 import {
   getCardProvider,
   isCardPaymentEnabled,
@@ -47,8 +47,9 @@ export default async function PayBillingPage({ params }: Props) {
     referenceCode = updatedMeta.referenceCode as string;
   }
 
-  const pkg = getCreditPackage(order.packageId);
+  const pkg = getOrderPlan(order.packageId);
   const bank = isFastPaymentAvailable() ? getFastPaymentConfig() : null;
+  const orderType = getOrderType(order.packageId);
 
   return (
     <UnifiedPaymentCheckout
@@ -56,9 +57,11 @@ export default async function PayBillingPage({ params }: Props) {
         id: order.id,
         amountTry: order.amountTry,
         credits: order.credits,
-        packageName: pkg?.name ?? order.packageId,
+        packageName: getOrderLabel(order.packageId),
         referenceCode,
         status: order.status,
+        orderType,
+        period: pkg?.period,
       }}
       bank={bank}
       cardEnabled={isCardPaymentEnabled()}

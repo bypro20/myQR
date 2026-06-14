@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { PaymentStatus } from "@/app/generated/prisma/client";
-import { getCreditPackage } from "@/lib/billing/packages";
 import { getAppBaseUrl } from "@/lib/billing/posnet/config";
+import { getOrderLabel } from "@/lib/billing/order-catalog";
 import { initializeIyzicoCheckout, isIyzicoConfigured } from "@/lib/billing/iyzico/client";
 import { getCardProvider } from "@/lib/billing/payment-config";
 import { requireTenantApi } from "@/lib/tenant";
@@ -49,14 +49,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (provider === "iyzico" && isIyzicoConfigured()) {
-      const pkg = getCreditPackage(order.packageId);
       const baseUrl = getAppBaseUrl();
       const callbackUrl = `${baseUrl}/api/billing/iyzico/callback`;
 
       const checkout = await initializeIyzicoCheckout({
         orderId: order.id,
         packageId: order.packageId,
-        packageName: pkg?.name ?? "Kredi paketi",
+        packageName: getOrderLabel(order.packageId),
         amountTry: order.amountTry,
         buyerEmail: auth.user.email,
         buyerName: auth.user.name || auth.organization.name,
