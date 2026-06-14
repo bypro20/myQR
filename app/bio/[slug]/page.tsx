@@ -8,8 +8,12 @@ type Props = { params: Promise<{ slug: string }> };
 
 export default async function BioPage({ params }: Props) {
   const { slug } = await params;
-  const page = await prisma.linkBioPage.findUnique({ where: { slug } });
-  if (!page) notFound();
+  const page = await prisma.linkBioPage.findUnique({
+    where: { slug },
+    include: { qrCode: { select: { expiresAt: true, isActive: true, durationTier: true, name: true } } },
+  });
+  if (!page || !page.qrCode.isActive) notFound();
+  if (page.qrCode.expiresAt && page.qrCode.expiresAt.getTime() <= Date.now()) notFound();
   const links = parseJson<BioLink[]>(page.links, []);
 
   return (

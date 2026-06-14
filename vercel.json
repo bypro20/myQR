@@ -1,0 +1,13 @@
+{
+  "buildCommand": "prisma generate && next build",
+  "framework": "nextjs",
+  "regions": ["fra1"],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.myqar.net" }],
+      "destination": "https://myqar.net/:path*",
+      "permanent": true
+    }
+  ]
+}

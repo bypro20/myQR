@@ -1,11 +1,16 @@
 import { prisma } from "@/lib/prisma";
+import { requireTenant, orgWhere } from "@/lib/tenant";
 import { QR_TYPE_LABELS } from "@/lib/qr/types";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export default async function TemplatesPage() {
-  const items = await prisma.qrTemplate.findMany({ orderBy: { name: "asc" } });
+  const { organization } = await requireTenant();
+  const items = await prisma.qrTemplate.findMany({
+    where: { OR: [{ isSystem: true }, { organizationId: organization.id }] },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <div className="space-y-6">

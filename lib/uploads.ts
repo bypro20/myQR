@@ -3,15 +3,17 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { safeFileName } from "@/lib/utils";
 
-const ROOT = path.join(process.cwd(), "uploads", "qr");
+const UPLOAD_ROOT = process.env.VERCEL
+  ? path.join("/tmp", "myqr-uploads", "qr")
+  : path.join(process.cwd(), "uploads", "qr");
 
 export const UPLOAD_DIRS = {
-  logos: path.join(ROOT, "logos"),
-  png: path.join(ROOT, "png"),
-  svg: path.join(ROOT, "svg"),
-  pdf: path.join(ROOT, "pdf"),
-  templates: path.join(ROOT, "templates"),
-  bulk: path.join(ROOT, "bulk"),
+  logos: path.join(UPLOAD_ROOT, "logos"),
+  png: path.join(UPLOAD_ROOT, "png"),
+  svg: path.join(UPLOAD_ROOT, "svg"),
+  pdf: path.join(UPLOAD_ROOT, "pdf"),
+  templates: path.join(UPLOAD_ROOT, "templates"),
+  bulk: path.join(UPLOAD_ROOT, "bulk"),
 } as const;
 
 export async function ensureUploadDirs() {
@@ -23,15 +25,21 @@ export async function saveUpload(
   fileName: string,
   data: Buffer | string,
 ) {
-  await ensureUploadDirs();
   const safe = safeFileName(fileName);
-  const fullPath = path.join(UPLOAD_DIRS[category], safe);
-  await writeFile(fullPath, data);
-  return {
-    fileName: safe,
-    path: `/uploads/qr/${category}/${safe}`,
-    absolutePath: fullPath,
-  };
+  try {
+    await ensureUploadDirs();
+    const fullPath = path.join(UPLOAD_DIRS[category], safe);
+    await writeFile(fullPath, data);
+    const publicRoot = process.env.VERCEL ? "" : "/uploads/qr";
+    return {
+      fileName: safe,
+      path: publicRoot ? `${publicRoot}/${category}/${safe}` : "",
+      absolutePath: fullPath,
+    };
+  } catch (err) {
+    console.warn("[saveUpload] archive skipped:", err);
+    return { fileName: safe, path: "", absolutePath: "" };
+  }
 }
 
 export function hashIp(ip: string) {

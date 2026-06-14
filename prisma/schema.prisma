@@ -7,6 +7,57 @@ datasource db {
   provider = "sqlite"
 }
 
+enum UserRole {
+  SUPER_ADMIN
+  PLATFORM_ADMIN
+  CUSTOMER
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum PlanTier {
+  FREE
+  STARTER
+  PRO
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+enum CreditTxType {
+  PURCHASE
+  BONUS
+  SPEND
+  REFUND
+  ADMIN
+  SUBSCRIPTION
+}
+
+enum PaymentStatus {
+  PENDING
+  AWAITING_CONFIRMATION
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum QrDurationTier {
+  FREE_TRIAL
+  WEEKLY
+  MONTHLY
+  YEARLY
+  PERMANENT
+}
+
 enum QrMode {
   STATIC
   DYNAMIC
@@ -14,60 +65,197 @@ enum QrMode {
 
 enum QrType {
   URL
+  TEXT
   GOOGLE_MAPS
   GOOGLE_REVIEW
+  GEO
   WIFI
   WHATSAPP
+  TELEGRAM
   SOCIAL
+  INSTAGRAM
+  FACEBOOK
+  YOUTUBE
+  TIKTOK
+  LINKEDIN
+  TWITTER
+  SNAPCHAT
+  SPOTIFY
+  DISCORD
   LINK_BIO
   VCARD
+  ME_CARD
   EMAIL
   PHONE
   SMS
   PDF
+  APP_STORE
+  PLAY_STORE
+  IBAN
+  CRYPTO
+  PAYPAL
+  PAYMENT_LINK
+  ECOMMERCE
+  PRODUCT
+  MENU
+  COUPON
+  BOOKING
+  FEEDBACK
+  CATALOG
+  MEMBERSHIP
+  PARKING
+  DONATION
+  TABLE_ORDER
+  INVENTORY
+  EVENT
+  VIDEO
   WARRANTY
   LCV
 }
 
+enum ActivityKind {
+  QR_CREATED
+  QR_UPDATED
+  QR_DELETED
+  USER_LOGIN
+  ADMIN_LOGIN
+  SIGNUP
+  PAYMENT_CREATED
+  PAYMENT_APPROVED
+  PAYMENT_CANCELLED
+  PAYMENT_REFUNDED
+  PAYMENT_DELETED
+  CREDIT_ADJUSTED
+  CREDIT_RESET
+  USER_CREATED
+  USER_UPDATED
+  USER_DELETED
+  ORG_UPDATED
+  ADMIN_BULK_ACTION
+  STAFF_UPDATED
+}
+
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String       @id @default(cuid())
+  email            String       @unique
+  passwordHash     String
+  name             String
+  role             UserRole     @default(CUSTOMER)
+  adminPermissions String       @default("[]")
+  grantedById      String?
+  grantedBy        User?        @relation("AdminGrants", fields: [grantedById], references: [id], onDelete: SetNull)
+  grantedAdmins    User[]       @relation("AdminGrants")
+  grantedAt        DateTime?
+  isActive         Boolean      @default(true)
+  lastLoginAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  memberships      Membership[]
+  activityLogs     ActivityLog[]
+}
+
+model Organization {
+  id                 String             @id @default(cuid())
+  name               String
+  slug               String             @unique
+  planTier           PlanTier           @default(FREE)
+  subscriptionStatus SubscriptionStatus @default(TRIAL)
+  trialEndsAt        DateTime?
+  subscriptionEndsAt DateTime?
+  credits            Int                @default(0)
+  unlimitedCredits   Boolean            @default(false)
+  qrCount            Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  memberships        Membership[]
+  qrCodes            QrCode[]
+  templates          QrTemplate[]
+  creditTransactions CreditTransaction[]
+  paymentOrders      PaymentOrder[]
+  uploadedFiles      UploadedFile[]
+  activityLogs       ActivityLog[]
+}
+
+model Membership {
+  id             String         @id @default(cuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role           MembershipRole @default(MEMBER)
+  createdAt      DateTime       @default(now())
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+model CreditTransaction {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           CreditTxType
+  amount         Int
+  balanceAfter   Int
+  description    String
+  referenceId    String?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([createdAt])
+}
+
+model PaymentOrder {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  packageId      String
+  amountTry      Int
+  credits        Int
+  status         PaymentStatus @default(PENDING)
+  provider       String        @default("internal")
+  providerRef    String?
+  metadata       String        @default("{}")
+  createdAt      DateTime      @default(now())
+  completedAt    DateTime?
+
+  @@index([organizationId])
+  @@index([status])
 }
 
 model QrCode {
-  id            String      @id @default(cuid())
-  name          String
-  type          QrType
-  mode          QrMode      @default(STATIC)
-  shortCode     String?     @unique
-  targetUrl     String?
-  payload       String      @default("{}")
-  design        String      @default("{}")
-  description   String?
-  customerName  String?
-  projectName   String?
-  productType   String?
-  isActive      Boolean     @default(true)
-  scanCount     Int         @default(0)
-  lastScannedAt DateTime?
-  templateId    String?
-  template      QrTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  scans         QrScan[]
-  linkBio       LinkBioPage?
-  warrantyForm  WarrantyForm?
-  lcvForm       LcvForm?
-  files         UploadedFile[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  type           QrType
+  mode           QrMode        @default(STATIC)
+  shortCode      String?       @unique
+  targetUrl      String?
+  payload        String        @default("{}")
+  design         String        @default("{}")
+  description    String?
+  customerName   String?
+  projectName    String?
+  productType    String?
+  isActive       Boolean         @default(true)
+  durationTier   QrDurationTier  @default(FREE_TRIAL)
+  expiresAt      DateTime?
+  scanCount      Int             @default(0)
+  lastScannedAt  DateTime?
+  templateId     String?
+  template       QrTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  scans          QrScan[]
+  linkBio        LinkBioPage?
+  warrantyForm   WarrantyForm?
+  lcvForm        LcvForm?
+  files          UploadedFile[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId])
   @@index([type])
   @@index([mode])
   @@index([isActive])
-  @@index([customerName])
   @@index([createdAt])
 }
 
@@ -88,18 +276,24 @@ model QrScan {
 }
 
 model QrTemplate {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  isSystem        Boolean       @default(false)
   name            String
   qrType          QrType
   defaultTitle    String?
   defaultSubtitle String?
-  design          String   @default("{}")
+  design          String        @default("{}")
   dimensions      String?
   printFormat     String?
   notes           String?
   qrCodes         QrCode[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([isSystem])
 }
 
 model LinkBioPage {
@@ -179,16 +373,42 @@ model LcvRegistration {
 }
 
 model UploadedFile {
-  id        String   @id @default(cuid())
-  qrCodeId  String?
-  qrCode    QrCode?  @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
-  category  String
-  fileName  String
-  mimeType  String
-  size      Int
-  path      String
-  createdAt DateTime @default(now())
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  qrCodeId       String?
+  qrCode         QrCode?       @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+  category       String
+  fileName       String
+  mimeType       String
+  size           Int
+  path           String
+  createdAt      DateTime      @default(now())
 
+  @@index([organizationId])
   @@index([category])
   @@index([qrCodeId])
+}
+
+model ActivityLog {
+  id             String       @id @default(cuid())
+  kind           ActivityKind
+  actorUserId    String?
+  actorUser      User?        @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorName      String?
+  actorEmail     String?
+  actorRole      String?
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  targetType     String?
+  targetId       String?
+  targetLabel    String?
+  message        String
+  metadata       String       @default("{}")
+  createdAt      DateTime     @default(now())
+
+  @@index([createdAt])
+  @@index([kind])
+  @@index([actorUserId])
+  @@index([organizationId])
 }

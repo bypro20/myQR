@@ -16,7 +16,11 @@ export default function BulkPage() {
     setMessage("");
     const res = await fetch("/api/qr/bulk", { method: "POST", body: new FormData(e.currentTarget) });
     setLoading(false);
-    if (!res.ok) { setMessage("Toplu üretim başarısız."); return; }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setMessage(typeof data.error === "string" ? data.error : "Toplu üretim başarısız.");
+      return;
+    }
     const blob = await res.blob();
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -45,7 +49,7 @@ export default function BulkPage() {
             </label>
             <Button disabled={loading} className="w-full py-3">{loading ? "Üretiliyor..." : "CSV Yükle ve ZIP İndir"}</Button>
           </form>
-          {message ? <p className="text-sm font-medium text-emerald-700">{message}</p> : null}
+          {message ? <p className={`text-sm font-medium ${message.includes("başarısız") ? "text-red-700" : "text-emerald-700"}`}>{message}</p> : null}
         </CardBody>
       </Card>
     </div>

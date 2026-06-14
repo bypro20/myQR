@@ -1,48 +1,45 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { LoginForm } from "@/components/auth/login-form";
-import { CheckCircle2, Palette, Printer, ScanLine } from "lucide-react";
+import { AuthSidePanel } from "@/components/auth/auth-side-panel";
+import { PRICING } from "@/lib/billing/pricing-config";
+import { totalSignupCredits } from "@/lib/marketing/launch-config";
+import { buildMetadata } from "@/lib/seo/metadata";
 
-const features = [
-  { icon: ScanLine, title: "14+ QR Türü", desc: "Menü, Wi-Fi, vCard, garanti ve daha fazlası" },
-  { icon: Palette, title: "Baskıya Hazır Tasarım", desc: "Renk, logo ve marka uyumlu QR çıktıları" },
-  { icon: Printer, title: "PNG · SVG · PDF", desc: "Pleksi, etiket ve davetiye için hazır formatlar" },
-  { icon: CheckCircle2, title: "Dinamik Yönetim", desc: "Baskıdan sonra bile hedef linki güncelleyin" },
-];
+export const metadata: Metadata = buildMetadata({
+  title: "Giriş",
+  description: "myQR hesabınıza giriş yapın — QR kodlarınızı yönetin, analitik ve faturalandırma paneline erişin.",
+  path: "/login",
+  noIndex: true,
+});
 
 export default function LoginPage() {
+  const signupCredits = totalSignupCredits();
+
   return (
-    <div className="gradient-hero min-h-screen lg:grid lg:grid-cols-2">
-      <div className="relative hidden overflow-hidden px-12 py-16 lg:flex lg:flex-col lg:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-600">QRBaskı Studio</p>
-          <h1 className="mt-6 max-w-lg text-5xl font-bold leading-tight text-violet-950">
-            Baskıya hazır QR kodlarını tek panelden yönetin
-          </h1>
-          <p className="mt-4 max-w-md text-lg text-slate-600">
-            myQR ile üretim, tasarım, yönlendirme ve raporlama tek çatı altında.
-          </p>
-        </div>
+    <div className="min-h-screen grid lg:grid-cols-2">
+      <AuthSidePanel
+        title="QR kodlarınızı tek panelden yönetin"
+        subtitle="Dinamik yönlendirme, toplu üretim ve canlı analitik — işletmeniz için hazır."
+        stats={[
+          { v: "45+", l: "QR formatı" },
+          { v: `${PRICING.trialDays} gün`, l: "Pro denemesi" },
+          { v: String(signupCredits), l: "Hoş geldin kredisi" },
+        ]}
+      />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {features.map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="rounded-2xl border border-violet-100 bg-white/70 p-4 backdrop-blur">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
-                <Icon className="h-5 w-5" />
-              </div>
-              <p className="mt-3 font-semibold text-violet-950">{title}</p>
-              <p className="mt-1 text-sm text-slate-500">{desc}</p>
-            </div>
-          ))}
-        </div>
-
-        <p className="text-sm text-slate-500">© myQR · QRBaskı için geliştirildi</p>
-      </div>
-
-      <div className="flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
+      <div className="flex flex-col justify-center bg-[var(--surface-soft)] px-5 py-12 sm:px-10">
+        <div className="mx-auto w-full max-w-md">
+          <Link href="/" className="mb-8 inline-flex items-center gap-1 text-sm text-[var(--ink-muted)] hover:text-[var(--brand)] lg:hidden">
+            ← Ana sayfa
+          </Link>
           <LoginForm />
-          <p className="mt-6 text-center text-sm text-slate-500 lg:hidden">
-            Henüz hesabınız yok mu? <Link href="/" className="font-medium text-violet-600">myQR hakkında</Link>
+          <p className="mt-6 text-center text-sm text-[var(--ink-muted)]">
+            Hesabınız yok mu?{" "}
+            <Link href="/signup" className="link-brand inline-flex items-center gap-1">
+              Ücretsiz kayıt olun <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </p>
         </div>
       </div>

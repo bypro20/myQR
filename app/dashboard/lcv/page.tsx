@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { requireTenant, orgWhere } from "@/lib/tenant";
 import { formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
@@ -8,7 +9,14 @@ import { Button } from "@/components/ui/button";
 import { ThumbsDown, ThumbsUp, Users } from "lucide-react";
 
 export default async function LcvPage() {
-  const items = await prisma.lcvRegistration.findMany({ include: { form: true }, orderBy: { createdAt: "desc" }, take: 100 });
+  const { organization } = await requireTenant();
+  const orgFilter = orgWhere(organization.id);
+  const items = await prisma.lcvRegistration.findMany({
+    where: { form: { qrCode: orgFilter } },
+    include: { form: true },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
   const attending = items.filter((i) => i.attendance === "Katılacağım").length;
   const notAttending = items.filter((i) => i.attendance === "Katılamayacağım").length;
 

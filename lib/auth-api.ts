@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { requireTenantApi } from "@/lib/tenant";
+
+export { requireTenantApi };
 
 export async function requireUserApi() {
-  const session = await getSession();
-  if (!session) {
-    return { error: NextResponse.json({ error: "Yetkisiz." }, { status: 401 }) };
-  }
-  return { session };
+  return requireTenantApi();
 }

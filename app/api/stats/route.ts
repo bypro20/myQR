@@ -1,35 +1,27 @@
 import { NextResponse } from "next/server";
-import { requireUserApi } from "@/lib/auth-api";
+import { requireTenantApi } from "@/lib/auth-api";
+import { orgWhere } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 
+/** Müşteri paneli istatistikleri — yalnızca kendi organizasyonu, canlı aktivite akışı yok */
 export async function GET() {
-  const auth = await requireUserApi();
+  const auth = await requireTenantApi();
   if (auth.error) return auth.error;
 
-  const [totalQr, activeQr, dynamicQr, totalScans, recentScans] = await Promise.all([
-    prisma.qrCode.count(),
-    prisma.qrCode.count({ where: { isActive: true } }),
-    prisma.qrCode.count({ where: { mode: "DYNAMIC" } }),
-    prisma.qrScan.count(),
-    prisma.qrScan.findMany({
-      orderBy: { scannedAt: "desc" },
-      take: 10,
-      include: { qrCode: { select: { name: true, shortCode: true } } },
+  const orgFilter = orgWhere(auth.organization.id);
+
+  const [totalQr, activeQr, dynamicQr, totalScans, topQr] = await Promise.all([
+    prisma.qrCode.count({ where: orgFilter }),
+    prisma.qrCode.count({ where: { ...orgFilter, isActive: true } }),
+    prisma.qrCode.count({ where: { ...orgFilter, mode: "DYNAMIC" } }),
+    prisma.qrScan.count({ where: { qrCode: orgFilter } }),
+    prisma.qrCode.findMany({
+      where: orgFilter,
+      orderBy: { scanCount: "desc" },
+      take: 5,
+      select: { id: true, name: true, shortCode: true, scanCount: true, type: true },
     }),
   ]);
-
-  const topQr = await prisma.qrCode.findMany({
-    orderBy: { scanCount: "desc" },
-    take: 5,
-    select: { id: true, name: true, shortCode: true, scanCount: true, type: true },
-  });
-
-  const daily = await prisma.qrScan.groupBy({
-    by: ["scannedAt"],
-    _count: true,
-    orderBy: { scannedAt: "desc" },
-    take: 30,
-  });
 
   return NextResponse.json({
     totalQr,
@@ -37,7 +29,7 @@ export async function GET() {
     dynamicQr,
     totalScans,
     topQr,
-    recentScans,
-    dailyCount: daily.length,
+    credits: auth.organization.credits,
+    planTier: auth.organization.planTier,
   });
 }

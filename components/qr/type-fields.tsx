@@ -1,6 +1,13 @@
 "use client";
 
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
+import { getCatalogEntry } from "@/lib/qr/catalog";
+import {
+  getBankByCode,
+  getBankScanHint,
+  resolveBankFromIban,
+  syncIbanPayload,
+} from "@/lib/qr/turkish-banks";
 
 type Props = {
   type: string;
@@ -8,96 +15,140 @@ type Props = {
   onChange: (payload: Record<string, unknown>) => void;
 };
 
-const SOCIAL_PLATFORMS = ["Instagram", "TikTok", "Facebook", "YouTube", "LinkedIn", "X / Twitter", "Diğer"];
-
 export function QrTypeFields({ type, payload, onChange }: Props) {
+  const entry = getCatalogEntry(type);
+
   function set(key: string, value: unknown) {
     onChange({ ...payload, [key]: value });
   }
 
-  switch (type) {
-    case "URL":
-    case "GOOGLE_MAPS":
-    case "GOOGLE_REVIEW":
-    case "PDF":
-      return (
-        <label className="block md:col-span-2">
-          <Label>Bağlantı URL</Label>
-          <Input value={String(payload.url || "")} onChange={(e) => set("url", e.target.value)} placeholder="https://" />
-        </label>
-      );
-    case "SOCIAL":
-      return (
-        <>
-          <label className="block"><Label>Platform</Label>
-            <Select value={String(payload.platform || "Instagram")} onChange={(e) => set("platform", e.target.value)}>
-              {SOCIAL_PLATFORMS.map((p) => <option key={p}>{p}</option>)}
-            </Select>
-          </label>
-          <label className="block md:col-span-2 sm:col-span-1"><Label>Profil Linki</Label>
-            <Input value={String(payload.url || "")} onChange={(e) => set("url", e.target.value)} placeholder="https://instagram.com/..." />
-          </label>
-        </>
-      );
-    case "WIFI":
-      return (
-        <>
-          <label className="block"><Label>Ağ Adı (SSID)</Label><Input value={String(payload.ssid || "")} onChange={(e) => set("ssid", e.target.value)} /></label>
-          <label className="block"><Label>Şifre</Label><Input value={String(payload.password || "")} onChange={(e) => set("password", e.target.value)} /></label>
-          <label className="block"><Label>Şifreleme</Label>
-            <Select value={String(payload.encryption || "WPA")} onChange={(e) => set("encryption", e.target.value)}>
-              <option value="WPA">WPA/WPA2</option><option value="WEP">WEP</option><option value="nopass">Şifresiz</option>
-            </Select>
-          </label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={Boolean(payload.hidden)} onChange={(e) => set("hidden", e.target.checked)} className="rounded" /> Gizli ağ</label>
-        </>
-      );
-    case "WHATSAPP":
-      return (
-        <>
-          <label className="block"><Label>Ülke Kodu</Label><Input value={String(payload.countryCode || "90")} onChange={(e) => set("countryCode", e.target.value)} /></label>
-          <label className="block"><Label>Telefon</Label><Input value={String(payload.phone || "")} onChange={(e) => set("phone", e.target.value)} /></label>
-          <label className="block md:col-span-2"><Label>Hazır Mesaj</Label><Textarea rows={2} value={String(payload.message || "")} onChange={(e) => set("message", e.target.value)} /></label>
-        </>
-      );
-    case "VCARD":
-      return (
-        <>
-          <label className="block"><Label>Ad Soyad</Label><Input value={String(payload.fullName || "")} onChange={(e) => set("fullName", e.target.value)} /></label>
-          <label className="block"><Label>Firma</Label><Input value={String(payload.company || "")} onChange={(e) => set("company", e.target.value)} /></label>
-          <label className="block"><Label>Unvan</Label><Input value={String(payload.title || "")} onChange={(e) => set("title", e.target.value)} /></label>
-          <label className="block"><Label>Telefon</Label><Input value={String(payload.phone || "")} onChange={(e) => set("phone", e.target.value)} /></label>
-          <label className="block"><Label>E-posta</Label><Input value={String(payload.email || "")} onChange={(e) => set("email", e.target.value)} /></label>
-          <label className="block md:col-span-2"><Label>Web Sitesi</Label><Input value={String(payload.website || "")} onChange={(e) => set("website", e.target.value)} /></label>
-          <label className="block md:col-span-2"><Label>Adres</Label><Input value={String(payload.address || "")} onChange={(e) => set("address", e.target.value)} /></label>
-          <label className="block md:col-span-2"><Label>Not</Label><Textarea rows={2} value={String(payload.note || "")} onChange={(e) => set("note", e.target.value)} /></label>
-        </>
-      );
-    case "EMAIL":
-      return (
-        <>
-          <label className="block md:col-span-2"><Label>E-posta</Label><Input value={String(payload.email || "")} onChange={(e) => set("email", e.target.value)} /></label>
-          <label className="block"><Label>Konu</Label><Input value={String(payload.subject || "")} onChange={(e) => set("subject", e.target.value)} /></label>
-          <label className="block md:col-span-2"><Label>Mesaj</Label><Textarea rows={2} value={String(payload.body || "")} onChange={(e) => set("body", e.target.value)} /></label>
-        </>
-      );
-    case "PHONE":
-      return <label className="block md:col-span-2"><Label>Telefon</Label><Input value={String(payload.phone || "")} onChange={(e) => set("phone", e.target.value)} /></label>;
-    case "SMS":
-      return (
-        <>
-          <label className="block"><Label>Telefon</Label><Input value={String(payload.phone || "")} onChange={(e) => set("phone", e.target.value)} /></label>
-          <label className="block"><Label>SMS Mesajı</Label><Input value={String(payload.message || "")} onChange={(e) => set("message", e.target.value)} /></label>
-        </>
-      );
-    case "WARRANTY":
-    case "LCV":
-      return type === "LCV" ? (
-        <label className="block md:col-span-2"><Label>Etkinlik Tarihi</Label><Input value={String(payload.eventDate || "")} onChange={(e) => set("eventDate", e.target.value)} placeholder="12 Haziran 2026" /></label>
-      ) : (
-        <p className="md:col-span-2 text-sm text-slate-500">Garanti formu otomatik oluşturulur. Kayıt sonrası public form linki QR içine yazılır.</p>
-      );
-    default:
-      return null;
+  function setIban(value: string) {
+    onChange(syncIbanPayload({ ...payload, iban: value }));
   }
+
+  if (!entry || entry.fields.length === 0) {
+    if (type === "WARRANTY") {
+      return (
+        <p className="md:col-span-2 text-sm text-slate-500">
+          Garanti formu otomatik oluşturulur. Kayıt sonrası public form linki QR içine yazılır.
+        </p>
+      );
+    }
+    return null;
+  }
+
+  const ibanClean =
+    type === "IBAN" ? String(payload.iban || "").replace(/\s/g, "").toUpperCase() : "";
+  const ibanReady = ibanClean.startsWith("TR") && ibanClean.length === 26;
+  const detectedBank = ibanReady ? resolveBankFromIban(ibanClean) : null;
+  const bankCode = String(detectedBank?.code || payload.bankCode || "");
+  const bankHint = type === "IBAN" && bankCode ? getBankScanHint(bankCode) : "";
+
+  return (
+    <>
+      {entry.fields.map((field) => {
+        const colClass = field.colSpan === 2 ? "md:col-span-2" : "";
+        const value = payload[field.key];
+
+        if (field.type === "bank") {
+          return (
+            <label key={field.key} className={`block ${colClass}`}>
+              <Label>{field.label}</Label>
+              <Input
+                type="text"
+                readOnly
+                value={detectedBank?.name || (ibanReady ? "Banka tanınamadı" : "IBAN girince otomatik belirlenir")}
+                className="bg-slate-50 text-slate-700"
+              />
+              {bankHint ? (
+                <p className="mt-1.5 rounded-lg bg-violet-50 px-2.5 py-2 text-xs text-violet-800">
+                  <span className="font-semibold">{detectedBank?.name}:</span> {bankHint}
+                </p>
+              ) : null}
+              <p className="mt-1 text-xs text-slate-500">
+                Bu alan IBAN numarasından otomatik gelir. Ödemeyi gönderen kişi Enpara, Ziraat vb. kullanabilir — QR tüm bankalarda okunur.
+              </p>
+            </label>
+          );
+        }
+
+        if (field.type === "checkbox") {
+          return (
+            <label key={field.key} className={`flex items-center gap-2 ${colClass}`}>
+              <input
+                type="checkbox"
+                checked={Boolean(value)}
+                onChange={(e) => set(field.key, e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-sm font-medium text-slate-700">{field.label}</span>
+            </label>
+          );
+        }
+
+        if (field.type === "select") {
+          return (
+            <label key={field.key} className={`block ${colClass}`}>
+              <Label>{field.label}</Label>
+              <Select
+                value={String(value ?? field.options?.[0]?.value ?? "")}
+                onChange={(e) => set(field.key, e.target.value)}
+              >
+                {field.options?.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </Select>
+              {field.key === "paymentScene" && bankCode ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  {getBankByCode(bankCode)?.name} için önerilen format otomatik seçildi; gerekirse değiştirebilirsiniz.
+                </p>
+              ) : null}
+            </label>
+          );
+        }
+
+        if (field.type === "textarea") {
+          return (
+            <label key={field.key} className={`block ${colClass}`}>
+              <Label>{field.label}</Label>
+              <Textarea
+                rows={3}
+                value={String(value ?? "")}
+                onChange={(e) => set(field.key, e.target.value)}
+                placeholder={field.placeholder}
+              />
+            </label>
+          );
+        }
+
+        if (field.key === "iban" && type === "IBAN") {
+          return (
+            <label key={field.key} className={`block ${colClass}`}>
+              <Label>{field.label}</Label>
+              <Input
+                type="text"
+                value={String(value ?? "")}
+                onChange={(e) => setIban(e.target.value)}
+                placeholder={field.placeholder}
+              />
+            </label>
+          );
+        }
+
+        return (
+          <label key={field.key} className={`block ${colClass}`}>
+            <Label>{field.label}</Label>
+            <Input
+              type={field.type === "email" ? "email" : field.type === "tel" ? "tel" : field.type === "number" ? "number" : "text"}
+              value={String(value ?? "")}
+              onChange={(e) => set(field.key, e.target.value)}
+              placeholder={field.placeholder}
+            />
+          </label>
+        );
+      })}
+    </>
+  );
 }

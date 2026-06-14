@@ -1,154 +1,310 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowRight, Check, Lock, Sparkles, Users, Zap } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import {
-  ArrowRight,
-  BarChart3,
-  Layers,
-  Palette,
-  QrCode,
-  ShieldCheck,
-  Sparkles,
-  Upload,
-} from "lucide-react";
+import { JsonLdScript } from "@/components/seo/json-ld";
+import { SiteFooter } from "@/components/site/site-footer";
+import { SiteHeader } from "@/components/site/site-header";
+import { ContactInfoPanel } from "@/components/site/contact-info-panel";
+import { HowItWorksSection } from "@/components/site/how-it-works-section";
+import { LaunchCtaSection } from "@/components/site/launch-cta-section";
+import { UseCasesSection } from "@/components/site/use-cases-section";
+import { QrLifecyclePricing } from "@/components/billing/qr-lifecycle-pricing";
+import { IconBadge } from "@/components/site/icon-badge";
+import { PlanCard } from "@/components/site/plan-card";
+import { PaymentBadges } from "@/components/site/payment-badges";
+import { FEATURE_THEMES } from "@/lib/marketing/theme";
+import { PRICING } from "@/lib/billing/pricing-config";
+import { homepageJsonLd } from "@/lib/seo/json-ld";
+import { buildMetadata } from "@/lib/seo/metadata";
+import { isLaunchActive, LAUNCH, signupOfferLine, totalSignupCredits } from "@/lib/marketing/launch-config";
+import { PLANS } from "@/lib/plans";
 
 const features = [
   {
-    icon: QrCode,
-    title: "Tüm QR Türleri",
-    desc: "URL, Wi-Fi, WhatsApp, vCard, garanti, LCV ve 14+ format.",
+    title: "45+ hazır QR formatı",
+    desc: "Menü, Wi-Fi, WhatsApp, vCard, garanti ve LCV — müşterinizin ihtiyacına göre saniyeler içinde üretin.",
   },
   {
-    icon: Palette,
-    title: "Marka Uyumlu Tasarım",
-    desc: "Renk, logo, başlık ve baskı önizlemesi ile profesyonel çıktı.",
+    title: "Dinamik yönlendirme",
+    desc: "Baskıyı yenilemeden hedefi güncelleyin. Kampanya, menü veya fiyat değişikliğinde QR aynı kalır.",
   },
   {
-    icon: Layers,
-    title: "25 Hazır Şablon",
-    desc: "Menü standı, davetiye, etiket ve yorum kartı şablonları.",
+    title: "Toplu üretim",
+    desc: "CSV ile yüzlerce kodu tek seferde oluşturun, ZIP indirin, matbaa sürecine doğrudan aktarın.",
   },
   {
-    icon: Upload,
-    title: "Toplu Üretim",
-    desc: "CSV yükleyin, yüzlerce QR kodu ZIP olarak indirin.",
+    title: "Canlı analitik",
+    desc: "Kim, ne zaman, hangi cihazdan taradı — performansı ölçün, yatırımınızın karşılığını görün.",
   },
   {
-    icon: ShieldCheck,
-    title: "Garanti & LCV",
-    desc: "Aktivasyon formları ve katılım kayıtları tek panelde.",
+    title: "QR süre lisansı",
+    desc: "15 gün deneme, haftalık/aylık/yıllık/kalıcı paketler — sektör standardı gelir modeli.",
   },
   {
-    icon: BarChart3,
-    title: "Tarama Analitiği",
-    desc: "Dinamik QR performansını cihaz ve zaman bazlı izleyin.",
+    title: "Kurumsal güvenlik",
+    desc: "Tenant izolasyonu, şifreli oturum ve korumalı API — müşteri veriniz güvende.",
   },
 ];
+
+export const metadata: Metadata = buildMetadata({
+  absoluteTitle: true,
+  title: "myQR | Profesyonel QR Kod Platformu — Dinamik QR & Toplu Üretim",
+  description: `Matbaa, ajans ve perakende için dinamik QR, toplu üretim ve analitik. ${PRICING.trialDays} gün Pro denemesi, ${totalSignupCredits()} hoş geldin kredisi — kredi kartı gerekmez.`,
+  path: "/",
+  keywords: ["qr kod oluştur", "dinamik qr kod türkiye", "qr kod platformu", "toplu qr kod"],
+});
 
 export default async function HomePage() {
   const session = await getSession();
   if (session) redirect("/dashboard");
 
+  const launch = isLaunchActive();
+  const previewPlans = PLANS.filter((p) => p.id !== "FREE").slice(0, 3);
+  const signupCredits = totalSignupCredits();
+
   return (
-    <div className="gradient-hero min-h-screen">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-6 sm:px-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-violet-800 text-white shadow-lg">
-            <QrCode className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-lg font-bold text-violet-950">myQR</p>
-            <p className="text-xs text-slate-500">QRBaskı Studio</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/login" className="rounded-xl px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50">
-            Giriş
-          </Link>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/25 hover:bg-violet-700"
-          >
-            Panele Git <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[var(--surface-soft)]">
+      <JsonLdScript data={homepageJsonLd()} />
+      <SiteHeader />
 
-      <main className="mx-auto max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pt-16">
-        <section className="grid items-center gap-12 lg:grid-cols-2">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white/80 px-4 py-1.5 text-sm font-medium text-violet-700">
-              <Sparkles className="h-4 w-4 text-orange-500" />
-              QRBaskı için profesyonel QR platformu
-            </div>
-            <h1 className="mt-6 text-4xl font-bold leading-tight text-violet-950 sm:text-5xl lg:text-6xl">
-              QR kod üretimi artık <span className="text-violet-600">dört dörtlük</span>
-            </h1>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-600">
-              Statik ve dinamik QR kodları oluşturun, baskıya hazır PNG/SVG/PDF indirin, garanti ve davetiye formlarını yönetin.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 hover:bg-orange-600"
-              >
-                Hemen Başla <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-6 py-3.5 text-sm font-semibold text-violet-800 hover:bg-violet-50"
-              >
-                Demo Giriş
-              </Link>
-            </div>
+      <main>
+        <section className="page-hero relative overflow-hidden">
+          <div className="aurora">
+            <div className="aurora-orb aurora-orb-1" />
+            <div className="aurora-orb aurora-orb-2" />
+            <div className="aurora-orb aurora-orb-3" />
           </div>
+          <div className="site-grid-bg absolute inset-0 opacity-[0.08]" />
 
-          <div className="relative flex justify-center">
-            <div className="animate-float absolute -left-4 top-8 rounded-2xl border border-violet-100 bg-white p-4 shadow-xl">
-              <p className="text-xs font-medium text-slate-500">Dinamik QR</p>
-              <p className="mt-1 font-mono text-sm text-violet-700">myqr.com/q/x8k2m9</p>
+          <div className="site-container relative grid items-center gap-16 py-20 lg:grid-cols-2 lg:py-28">
+            <div className="animate-fade-up">
+              <span className="eyebrow-dark">
+                <Sparkles className="h-3.5 w-3.5" />
+                {launch ? `${LAUNCH.label} · Matbaa · Ajans · Perakende` : "Matbaa · Ajans · Perakende"}
+              </span>
+              <h1 className="mt-6 text-4xl font-extrabold leading-[1.06] tracking-tight text-white sm:text-5xl lg:text-[3.5rem] text-balance">
+                QR kodunuzla{" "}
+                <span className="text-gradient-warm">gelir kazanın</span>
+              </h1>
+              <p className="mt-6 max-w-lg text-lg leading-relaxed text-slate-300/90">
+                Profesyonel QR platformu: üretin, müşterinize satın, süre uzatmasından tekrarlayan gelir elde edin.
+                Dinamik QR, toplu baskı ve canlı analitik — tek panelde.
+              </p>
+              <div className="mt-10 flex flex-wrap gap-3">
+                <Link href="/signup" className="btn-brand btn-brand-lg animate-pulse-glow">
+                  {launch ? LAUNCH.ctaPrimary : "14 gün ücretsiz dene"} <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/pricing" className="btn-outline-glass">
+                  {launch ? LAUNCH.ctaSecondary : "Paketleri incele"}
+                </Link>
+              </div>
+              <p className="mt-4 text-xs font-semibold tracking-wide text-fuchsia-300/90">
+                ✦ {signupOfferLine()} · Kredi kartı gerekmez
+              </p>
+              <div className="mt-10 flex flex-wrap gap-4">
+                {[
+                  { label: "QR formatı", value: "45+" },
+                  { label: "Kurulum", value: "2 dk" },
+                  { label: "Hoş geldin", value: `${signupCredits} kr` },
+                ].map((s) => (
+                  <div key={s.label} className="stat-pill">
+                    <p className="text-2xl font-extrabold text-gradient">{s.value}</p>
+                    <p className="text-xs font-medium text-slate-400">{s.label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="rounded-[2rem] border border-violet-100 bg-white p-8 shadow-2xl shadow-violet-500/15">
-              <div className="mx-auto flex h-56 w-56 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-50 to-orange-50">
-                <div className="grid grid-cols-5 gap-1.5 p-4">
-                  {Array.from({ length: 25 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`h-7 w-7 rounded-sm ${[0, 1, 2, 4, 5, 6, 10, 12, 14, 18, 20, 22, 24].includes(i) ? "bg-violet-800" : "bg-transparent"}`}
-                    />
+
+            <div className="relative animate-fade-up" style={{ animationDelay: "0.12s" }}>
+              <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-fuchsia-500/30 via-purple-500/20 to-cyan-400/30 blur-2xl" />
+              <div className="card-glass relative animate-pulse-glow p-6 text-white">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-fuchsia-200/80">Örnek panel</span>
+                  <span className="rounded-full bg-emerald-400/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300 ring-1 ring-emerald-400/30">● Aktif</span>
+                </div>
+                <div className="mt-6 grid grid-cols-3 gap-3">
+                  {[
+                    { label: "QR", value: "12", color: "from-violet-400 to-fuchsia-500" },
+                    { label: "Tarama", value: "840", color: "from-cyan-400 to-blue-500" },
+                    { label: "Kredi", value: `${signupCredits}`, color: "from-orange-400 to-pink-500" },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur-sm">
+                      <div className={`mb-2 h-1 w-8 rounded-full bg-gradient-to-r ${s.color}`} />
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{s.label}</p>
+                      <p className="text-xl font-extrabold">{s.value}</p>
+                    </div>
                   ))}
                 </div>
+                <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1a0a2e] to-[#0c0118] p-5 shadow-inner">
+                  <div className="mx-auto grid h-28 w-28 grid-cols-5 gap-1 p-2">
+                    {Array.from({ length: 25 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`rounded-sm ${[0, 1, 2, 4, 5, 6, 10, 12, 14, 18, 20, 22, 24].includes(i) ? "bg-gradient-to-br from-white to-fuchsia-200" : "bg-transparent"}`}
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-3 text-center text-xs font-medium text-fuchsia-200/70">Restoran menüsü · Dinamik QR</p>
+                </div>
+                <p className="mt-3 text-center text-[10px] text-slate-500">* Örnek arayüz — gerçek veriler panelinizde görünür</p>
               </div>
-              <p className="mt-6 text-center text-sm font-semibold text-violet-950">Restoran Menü QR · Baskıya Hazır</p>
-            </div>
-            <div className="absolute -bottom-2 -right-2 rounded-2xl border border-orange-100 bg-orange-50 px-4 py-3 shadow-lg">
-              <p className="text-xs font-medium text-orange-700">+128 tarama bugün</p>
             </div>
           </div>
         </section>
 
-        <section className="mt-24">
-          <h2 className="text-center text-3xl font-bold text-violet-950">Her ihtiyaca uygun modüller</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-slate-500">
-            Basit bir QR üreticiden fazlası — QRBaskı ürünleriniz için uçtan uca yönetim.
-          </p>
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="card-hover rounded-2xl border border-violet-100 bg-white p-6 shadow-sm">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
-                  <Icon className="h-6 w-6" />
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-violet-950">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-500">{desc}</p>
-              </div>
-            ))}
+        <HowItWorksSection />
+
+        <section id="ozellikler" className="section-pad section-slate">
+          <div className="site-container">
+            <span className="section-badge">
+              <Zap className="h-3.5 w-3.5" />
+              Neden myQR?
+            </span>
+            <h2 className="section-title mt-4 text-[var(--ink)]">
+              Teknik detaylarla uğraşmayın,{" "}
+              <span className="text-gradient">işinize odaklanın</span>
+            </h2>
+            <p className="section-sub">
+              Matbaa, ajans ve perakende işletmeleri için tasarlandı. QR üretin, müşterilerinize teslim edin, performansı gerçek zamanlı izleyin.
+            </p>
+            <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {features.map(({ title, desc }, i) => {
+                const theme = FEATURE_THEMES[i];
+                return (
+                  <article key={title} className="group card-glow card-hover relative overflow-hidden p-6">
+                    <IconBadge icon={theme.icon} gradient={theme.gradient} glow={theme.glow} />
+                    <h3 className="mt-4 text-lg font-bold text-[var(--ink)]">{title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-[var(--ink-muted)]">{desc}</p>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         </section>
+
+        <UseCasesSection />
+
+        <section className="section-pad border-y border-[var(--line)] bg-white">
+          <div className="site-container max-w-4xl">
+            <QrLifecyclePricing />
+            <div className="mt-8 text-center">
+              <Link href="/pricing" className="link-brand inline-flex items-center gap-1 text-sm">
+                Tüm fiyatlandırma detayları <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="section-pad border-b border-[var(--line)] bg-white">
+          <div className="site-container flex flex-col items-start gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <span className="section-badge">
+                <Users className="h-3.5 w-3.5" />
+                İş ortağı programı
+              </span>
+              <h2 className="section-title mt-4 text-[var(--ink)]">
+                Panel kiralayın,{" "}
+                <span className="text-gradient">müşterilerinize satın</span>
+              </h2>
+              <p className="section-sub">
+                myQR panelimizden çalışın: indirimli toptan kredi alın, her müşterinize ayrı panel açın,
+                kendi fiyatınızla QR hizmeti sunun.
+              </p>
+            </div>
+            <Link href="/panel-kiralama" className="btn-brand shrink-0 px-6 py-3.5">
+              Panel kiralama detayları <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
+
+        <section className="section-pad section-dark">
+          <div className="site-container">
+            <div className="text-center">
+              <span className="eyebrow-dark">Fiyatlandırma önizleme</span>
+              <h2 className="section-title mt-4 text-white">İşletmenize uygun plan</h2>
+              <p className="mx-auto mt-3 max-w-xl text-slate-400">
+                Küçük atölyeden büyük ajansa — ihtiyacınıza göre ölçeklenen, şeffaf fiyatlandırma.
+              </p>
+            </div>
+            <div className="mt-12 grid gap-6 md:grid-cols-3">
+              {previewPlans.map((plan) => (
+                <PlanCard key={plan.id} plan={plan} compact ctaLabel={launch ? "14 gün dene" : "Başla"} />
+              ))}
+            </div>
+            <div className="mt-10 flex flex-col items-center gap-4">
+              <PaymentBadges size="sm" variant="checkout" />
+              <Link href="/pricing" className="link-brand inline-flex items-center gap-1 text-sm">
+                Tüm paketleri ve kredi seçeneklerini gör <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section id="guvenlik" className="section-pad">
+          <div className="site-container grid items-center gap-12 lg:grid-cols-2">
+            <div>
+              <IconBadge icon={Lock} gradient="from-slate-700 to-slate-900" size="lg" />
+              <h2 className="section-title mt-6 text-[var(--ink)]">Verileriniz güvende</h2>
+              <p className="section-sub">
+                Kurumsal müşterilerin beklediği güvenlik standartları — altyapıdan uygulama katmanına kadar.
+              </p>
+              <ul className="mt-6 space-y-3 text-sm text-[var(--ink-muted)]">
+                {[
+                  "HTTP-only JWT oturum yönetimi",
+                  "Tenant bazlı veri izolasyonu",
+                  "API rate limiting",
+                  "bcrypt ile şifre koruması",
+                  "Korumalı uç noktalar",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2">
+                    <Check className="h-4 w-4 shrink-0 text-[var(--brand)]" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="card-glow p-8">
+              <p className="font-bold text-[var(--ink)]">Şeffaf kredi modeli</p>
+              <p className="mt-1 text-sm text-[var(--ink-muted)]">Ne kadar harcadığınızı her zaman bilin.</p>
+              <div className="mt-4 grid gap-2">
+                {[
+                  { label: "Statik QR", val: "1 kredi" },
+                  { label: "Dinamik QR", val: "3 kredi + süre" },
+                  { label: "Kalıcı lisans", val: "150 kr ek" },
+                ].map((r) => (
+                  <div key={r.label} className="flex items-center justify-between rounded-xl bg-[var(--surface-muted)] px-4 py-2.5 text-sm">
+                    <span className="font-medium text-[var(--ink)]">{r.label}</span>
+                    <span className="font-bold text-[var(--brand)]">{r.val}</span>
+                  </div>
+                ))}
+              </div>
+              <Link href="/signup" className="btn-brand mt-6 px-5 py-2.5">
+                {launch ? LAUNCH.ctaPrimary : "Ücretsiz başla"}
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section id="iletisim" className="section-pad border-t border-[var(--line)] bg-white">
+          <div className="site-container">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="section-title text-[var(--ink)]">İletişim</h2>
+              <p className="section-sub mx-auto">
+                Sorularınız ve destek talepleriniz için bizimle iletişime geçin.
+              </p>
+            </div>
+            <div className="mx-auto mt-10 max-w-3xl">
+              <ContactInfoPanel />
+            </div>
+          </div>
+        </section>
+
+        <LaunchCtaSection />
       </main>
 
-      <footer className="border-t border-violet-100 bg-white/60 py-8 text-center text-sm text-slate-500">
-        myQR · QRBaskı QR Üretim ve Yönetim Sistemi
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

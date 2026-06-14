@@ -24,8 +24,58 @@ export function safeFileName(input: string) {
     .slice(0, 120) || "file";
 }
 
+function normalizeUrl(url: string) {
+  return url.replace(/\/$/, "");
+}
+
+function isVercelHost(host: string) {
+  return host.includes("vercel.app") || host.includes("vercel.sh");
+}
+
+/** Canonical public URL for QR short links — never a deployment preview URL. */
 export function getAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  if (configured && !isVercelHost(new URL(configured).host)) {
+    return configured;
+  }
+
+  const production = process.env.VERCEL_PROJECT_PRODUCTION_URL?.replace(/^https?:\/\//, "");
+  if (production && configured && isVercelHost(production)) {
+    return configured;
+  }
+  if (production && !isVercelHost(production)) {
+    return normalizeUrl(`https://${production}`);
+  }
+
+  if (configured) return configured;
+
+  const vercel = process.env.VERCEL_URL;
+  if (vercel) return normalizeUrl(`https://${vercel}`);
+
+  return "http://localhost:3000";
+}
+
+export function getAppUrlFromHeaders(headers: Headers) {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  const host = (headers.get("x-forwarded-host") || headers.get("host") || "")
+    .split(",")[0]
+    ?.trim();
+
+  if (host && !host.includes("localhost") && !isVercelHost(host)) {
+    return normalizeUrl(`https://${host}`);
+  }
+
+  return getAppUrl();
+}
+
+export async function getAppUrlFromRequest() {
+  try {
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    return getAppUrlFromHeaders(h);
+  } catch {
+    return getAppUrl();
+  }
 }
 
 export function parseJson<T>(value: string, fallback: T): T {
@@ -42,4 +92,9 @@ export function formatDate(date: Date | string | null | undefined) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(date));
+}
+
+export function formatCreditsDisplay(credits: number, unlimitedCredits?: boolean) {
+  if (unlimitedCredits) return "∞";
+  return credits.toLocaleString("tr-TR");
 }

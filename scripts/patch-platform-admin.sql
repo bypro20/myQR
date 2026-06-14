@@ -1,0 +1,3 @@
+ALTER TABLE "User" ADD COLUMN "adminPermissions" TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE "User" ADD COLUMN "grantedById" TEXT;
+ALTER TABLE "User" ADD COLUMN "grantedAt" DATETIME;

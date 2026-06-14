@@ -1,11 +1,18 @@
 import { prisma } from "@/lib/prisma";
+import { requireTenant, orgWhere } from "@/lib/tenant";
 import { formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export default async function WarrantyPage() {
-  const items = await prisma.warrantyRegistration.findMany({ include: { form: true }, orderBy: { createdAt: "desc" }, take: 100 });
+  const { organization } = await requireTenant();
+  const items = await prisma.warrantyRegistration.findMany({
+    where: { form: { qrCode: orgWhere(organization.id) } },
+    include: { form: true },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
 
   return (
     <div className="space-y-6">

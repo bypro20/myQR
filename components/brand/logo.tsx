@@ -10,7 +10,7 @@ export function Logo({ className, showText = true }: { className?: string; showT
       {showText ? (
         <div>
           <p className="text-lg font-bold leading-none text-white">myQR</p>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-violet-200">QRBaskı Studio</p>
+          <p className="text-[11px] font-medium text-violet-200/90">Profesyonel QR Platformu</p>
         </div>
       ) : null}
     </div>
@@ -25,7 +25,7 @@ export function LogoLight({ className }: { className?: string }) {
       </div>
       <div>
         <p className="text-xl font-bold leading-none text-violet-950">myQR</p>
-        <p className="text-xs font-medium text-slate-500">QRBaskı QR Yönetim</p>
+        <p className="text-xs font-medium text-slate-500">Profesyonel QR Platformu</p>
       </div>
     </div>
   );

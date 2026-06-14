@@ -1,36 +1,64 @@
 import Link from "next/link";
-import { Activity, Plus, QrCode, ScanLine, Zap } from "lucide-react";
+import { Activity, Coins, Plus, QrCode, ScanLine, Zap } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { requireTenant, orgWhere } from "@/lib/tenant";
 import { formatDate } from "@/lib/utils";
 import { QR_TYPE_LABELS } from "@/lib/qr/types";
+import { expiryStatus } from "@/lib/qr/duration";
+import { getEffectivePlanTier } from "@/lib/billing/pricing-config";
+import { getPlan } from "@/lib/plans";
+import { QrExpiryBanner } from "@/components/qr/qr-expiry-banner";
+import { OnboardingBanner } from "@/components/dashboard/onboarding-banner";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export default async function DashboardPage() {
-  const [totalQr, activeQr, dynamicQr, totalScans, recent] = await Promise.all([
-    prisma.qrCode.count(),
-    prisma.qrCode.count({ where: { isActive: true } }),
-    prisma.qrCode.count({ where: { mode: "DYNAMIC" } }),
-    prisma.qrScan.count(),
-    prisma.qrCode.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
+  const { organization } = await requireTenant();
+  const orgFilter = orgWhere(organization.id);
+  const effectiveTier = getEffectivePlanTier(organization);
+  const plan = getPlan(effectiveTier);
+
+  const [totalQr, activeQr, dynamicQr, totalScans, recent, allQr] = await Promise.all([
+    prisma.qrCode.count({ where: orgFilter }),
+    prisma.qrCode.count({ where: { ...orgFilter, isActive: true } }),
+    prisma.qrCode.count({ where: { ...orgFilter, mode: "DYNAMIC" } }),
+    prisma.qrScan.count({ where: { qrCode: orgFilter } }),
+    prisma.qrCode.findMany({ where: orgFilter, orderBy: { createdAt: "desc" }, take: 8 }),
+    prisma.qrCode.findMany({
+      where: { ...orgFilter, expiresAt: { not: null }, durationTier: { not: "PERMANENT" } },
+      select: { id: true, name: true, expiresAt: true, durationTier: true },
+    }),
   ]);
+
+  const expiring = allQr
+    .map((qr) => {
+      const exp = expiryStatus(qr.expiresAt, qr.durationTier);
+      if (exp.state === "permanent" || exp.state === "active") return null;
+      return { id: qr.id, name: qr.name, state: exp.state, label: exp.label };
+    })
+    .filter(Boolean) as { id: string; name: string; state: "expired" | "critical" | "warning"; label: string }[];
 
   return (
     <div className="space-y-8">
       <PageHeader
-        title="QRBaskı Panel"
-        description="QR üretim, baskı çıktısı ve yönetim merkezi"
+        title={`Merhaba, ${organization.name}`}
+        description={`${plan.name} planınız aktif · ${organization.credits.toLocaleString("tr-TR")} kredi kullanılabilir — yeni QR oluşturmaya hazırsınız.`}
         actionHref="/dashboard/qr/new"
         actionLabel="Yeni QR Oluştur"
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <QrExpiryBanner items={expiring}       />
+
+      <OnboardingBanner qrCount={totalQr} credits={organization.credits} />
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <StatCard label="Kredi" value={organization.credits} icon={Coins} tone="orange" />
         <StatCard label="Toplam QR" value={totalQr} icon={QrCode} tone="violet" />
         <StatCard label="Aktif QR" value={activeQr} icon={Zap} tone="emerald" />
-        <StatCard label="Dinamik QR" value={dynamicQr} icon={Activity} tone="orange" />
-        <StatCard label="Toplam Tarama" value={totalScans} icon={ScanLine} tone="sky" />
+        <StatCard label="Dinamik QR" value={dynamicQr} icon={Activity} tone="sky" />
+        <StatCard label="Toplam Tarama" value={totalScans} icon={ScanLine} tone="violet" />
       </div>
 
       <Card>

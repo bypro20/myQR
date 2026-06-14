@@ -3,10 +3,25 @@ import { jsPDF } from "jspdf";
 import { requireUserApi } from "@/lib/auth-api";
 import { prisma } from "@/lib/prisma";
 import { getQrContent } from "@/lib/qr/service";
+import { computeFrameLayout, shouldApplyFrame } from "@/lib/qr/frame";
 import { parseDesign, renderQrPng, renderQrSvg } from "@/lib/qr/render";
 import { saveUpload } from "@/lib/uploads";
+import { getAppUrlFromHeaders } from "@/lib/utils";
+import { validateStoredQr, qrValidationResponse } from "@/lib/qr/validate-input";
+
+export const runtime = "nodejs";
 
 type Params = { params: Promise<{ id: string }> };
+
+function attachmentHeaders(fileName: string, contentType: string, inline = false) {
+  const ascii = fileName.replace(/[^\x20-\x7E]/g, "_");
+  const disposition = inline ? "inline" : "attachment";
+  return {
+    "Content-Type": contentType,
+    "Content-Disposition": `${disposition}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+    "Cache-Control": "no-store",
+  };
+}
 
 export async function GET(req: NextRequest, { params }: Params) {
   const auth = await requireUserApi();
@@ -14,47 +29,45 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const { id } = await params;
   const format = req.nextUrl.searchParams.get("format") || "png";
-  const qr = await prisma.qrCode.findUnique({ where: { id } });
+  const inline = req.nextUrl.searchParams.get("inline") === "1";
+  const qr = await prisma.qrCode.findFirst({ where: { id, organizationId: auth.organization.id } });
   if (!qr) return NextResponse.json({ error: "QR bulunamadı." }, { status: 404 });
 
-  const content = getQrContent(qr);
+  const baseUrl = getAppUrlFromHeaders(req.headers);
+  const check = validateStoredQr(qr, baseUrl);
+  if (!check.valid) {
+    return NextResponse.json(qrValidationResponse(check.errors), { status: 400 });
+  }
+
+  const content = getQrContent(qr, baseUrl);
   const design = parseDesign(qr.design);
   const baseName = `${qr.name}-${qr.shortCode || qr.id}`.replace(/\s+/g, "-");
 
-  if (format === "svg") {
-    const svg = await renderQrSvg(content, qr.design);
-    await saveUpload("svg", `${baseName}.svg`, svg);
-    return new NextResponse(svg, {
-      headers: {
-        "Content-Type": "image/svg+xml",
-        "Content-Disposition": `attachment; filename="${baseName}.svg"`,
-      },
-    });
-  }
+  try {
+    if (format === "svg") {
+      const svg = await renderQrSvg(content, qr.design);
+      void saveUpload("svg", `${baseName}.svg`, svg);
+      return new NextResponse(svg, { headers: attachmentHeaders(`${baseName}.svg`, "image/svg+xml", inline) });
+    }
 
-  if (format === "pdf") {
+    if (format === "pdf") {
+      const png = await renderQrPng(content, qr.design);
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+      const img = `data:image/png;base64,${png.toString("base64")}`;
+      const layout = shouldApplyFrame(design) ? computeFrameLayout(design) : { width: design.size, height: design.size };
+      const drawW = 120;
+      const drawH = (layout.height / layout.width) * drawW;
+      doc.addImage(img, "PNG", 15, 25, drawW, drawH);
+      const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
+      void saveUpload("pdf", `${baseName}.pdf`, pdfBuffer);
+      return new NextResponse(pdfBuffer, { headers: attachmentHeaders(`${baseName}.pdf`, "application/pdf", inline) });
+    }
+
     const png = await renderQrPng(content, qr.design);
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const img = `data:image/png;base64,${png.toString("base64")}`;
-    if (design.title) doc.setFontSize(16), doc.text(design.title, 20, 20);
-    doc.addImage(img, "PNG", 20, 30, 80, 80);
-    if (design.caption) doc.setFontSize(11), doc.text(design.caption, 20, 120);
-    const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
-    await saveUpload("pdf", `${baseName}.pdf`, pdfBuffer);
-    return new NextResponse(pdfBuffer, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${baseName}.pdf"`,
-      },
-    });
+    void saveUpload("png", `${baseName}.png`, png);
+    return new NextResponse(new Uint8Array(png), { headers: attachmentHeaders(`${baseName}.png`, "image/png", inline) });
+  } catch (err) {
+    console.error("[qr export]", err);
+    return NextResponse.json({ error: "QR dosyası oluşturulamadı." }, { status: 500 });
   }
-
-  const png = await renderQrPng(content, qr.design);
-  await saveUpload("png", `${baseName}.png`, png);
-  return new NextResponse(new Uint8Array(png), {
-    headers: {
-      "Content-Type": "image/png",
-      "Content-Disposition": `attachment; filename="${baseName}.png"`,
-    },
-  });
 }
