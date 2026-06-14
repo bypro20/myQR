@@ -186,6 +186,7 @@ export default async function HomePage() {
               caption="Müşterilerinize QR hizmeti sunun, her yenilemede tekrarlayan gelir elde edin"
               frame="showcase"
               align="left"
+              href="/panel-kiralama"
             />
             <div>
               <span className="section-badge">

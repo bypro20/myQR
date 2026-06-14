@@ -250,13 +250,14 @@ export default function PanelKiralamaPage() {
         <section className="section-pad">
           <div className="site-container">
             <div className="grid items-start gap-12 lg:grid-cols-2">
-              <MarketingVisual
-                src={MARKETING_IMAGES.qrRevenue}
-                alt="QR kodlarınızı gelir kaynağına dönüştürün — bayilik sistemi"
-                caption="Dinamik QR, canlı analiz ve sürekli gelir modeli"
-                frame="showcase"
-                align="left"
-              />
+            <MarketingVisual
+              src={MARKETING_IMAGES.qrRevenue}
+              alt="QR kodlarınızı gelir kaynağına dönüştürün — bayilik sistemi"
+              caption="Dinamik QR, canlı analiz ve sürekli gelir modeli"
+              frame="showcase"
+              align="left"
+              href="/panel-kiralama"
+            />
               <div>
                 <h2 className="section-title text-[var(--ink)]">
                   Siz satışa odaklanın, <span className="text-gradient">gerisini biz halledelim</span>
