@@ -58,5 +58,5 @@ export const ROUTE_LIMITS: Record<string, { limit: number; windowMs: number }> =
 };
 
 export function getRouteLimit(pathname: string) {
-  return ROUTE_LIMITS[pathname] ?? { limit: 240, windowMs: 60_000 };
+  return ROUTE_LIMITS[pathname] ?? { limit: 180, windowMs: 60_000 };
 }

@@ -1,5 +1,7 @@
 import type { NextResponse } from "next/server";
 
+const TURNSTILE = "https://challenges.cloudflare.com";
+
 /** Üretim için güvenlik başlıkları + CSP */
 export function applySecurityHeaders(res: NextResponse, isProduction = process.env.NODE_ENV === "production") {
   res.headers.set("X-Frame-Options", "DENY");
@@ -14,14 +16,20 @@ export function applySecurityHeaders(res: NextResponse, isProduction = process.e
     res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   }
 
-  // Next.js inline script/style gerektirir; mümkün olduğunca sıkı tutuldu
+  const turnstileOn = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+  const scriptSrc = turnstileOn
+    ? `'self' 'unsafe-inline' 'unsafe-eval' ${TURNSTILE}`
+    : "'self' 'unsafe-inline' 'unsafe-eval'";
+  const frameSrc = turnstileOn ? `'self' ${TURNSTILE}` : "'none'";
+
   const csp = [
     "default-src 'self'",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
+    `frame-src ${frameSrc}`,
     "object-src 'none'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",

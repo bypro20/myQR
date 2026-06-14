@@ -1,8 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ArrowRight, Lock, Mail } from "lucide-react";
+import { HoneypotField } from "@/components/security/honeypot-field";
+import { TurnstileWidget } from "@/components/security/turnstile-widget";
+import { isTurnstileSiteKeyConfigured } from "@/lib/security/turnstile";
 
 export function LoginForm() {
   const router = useRouter();
@@ -10,20 +13,36 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRequired = isTurnstileSiteKeyConfigured();
 
-  async function submit(e: React.FormEvent) {
+  const onTurnstile = useCallback((token: string) => setTurnstileToken(token), []);
+  const onTurnstileExpire = useCallback(() => setTurnstileToken(""), []);
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (turnstileRequired && !turnstileToken) {
+      setError("Güvenlik doğrulamasını tamamlayın.");
+      return;
+    }
     setLoading(true);
     setError("");
+    const fd = new FormData(e.currentTarget);
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({
+        email,
+        password,
+        _hp: fd.get("_hp"),
+        turnstileToken: turnstileToken || undefined,
+      }),
     });
     const data = await res.json();
     setLoading(false);
     if (!res.ok) {
       setError(data.error || "E-posta veya şifre hatalı.");
+      setTurnstileToken("");
       return;
     }
     router.push("/dashboard");
@@ -31,7 +50,8 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={submit} className="card-elevated p-8">
+    <form onSubmit={submit} className="card-elevated relative p-8">
+      <HoneypotField />
       <span className="section-badge">Müşteri Girişi</span>
       <h1 className="mt-4 text-2xl font-bold text-[var(--ink)]">Panele hoş geldiniz</h1>
       <p className="mt-1 text-sm text-[var(--ink-muted)]">QR kodlarınızı yönetmek için giriş yapın</p>
@@ -52,6 +72,7 @@ export function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
+              autoComplete="username"
               required
             />
           </div>
@@ -65,11 +86,14 @@ export function LoginForm() {
               className="input-focus w-full rounded-lg border border-[var(--line)] py-2.5 pl-10 pr-3 text-sm"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               required
             />
           </div>
         </label>
       </div>
+
+      <TurnstileWidget onToken={onTurnstile} onExpire={onTurnstileExpire} />
 
       <button type="submit" disabled={loading} className="btn-gradient mt-6 w-full py-3 text-sm disabled:opacity-60">
         {loading ? "Giriş yapılıyor…" : "Giriş Yap"}

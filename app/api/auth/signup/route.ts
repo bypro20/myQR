@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { ActivityKind } from "@/app/generated/prisma/client";
 import { CreditTxType, MembershipRole, PlanTier, SubscriptionStatus } from "@/app/generated/prisma/client";
 import { createSession, hashPassword } from "@/lib/auth";
 import { PRICING } from "@/lib/billing/pricing-config";
 import { totalSignupCredits, isLaunchActive, LAUNCH } from "@/lib/marketing/launch-config";
+import { logSecurityEvent } from "@/lib/security/audit";
+import { getClientIp } from "@/lib/security/client-ip";
+import { isHoneypotTripped } from "@/lib/security/honeypot";
 import { validatePassword } from "@/lib/security/password";
+import { isTurnstileEnabled, verifyTurnstile } from "@/lib/security/turnstile";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
@@ -13,11 +18,32 @@ const schema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(128),
   company: z.string().min(2).max(120),
+  _hp: z.string().optional(),
+  turnstileToken: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
   try {
     const body = schema.parse(await req.json());
+
+    if (isHoneypotTripped(body._hp)) {
+      void logSecurityEvent({
+        kind: ActivityKind.SECURITY_BLOCKED,
+        ip,
+        path: "/api/auth/signup",
+        message: "Kayıt honeypot tetiklendi",
+      });
+      return NextResponse.json({ error: "Kayıt oluşturulamadı." }, { status: 400 });
+    }
+
+    if (isTurnstileEnabled()) {
+      const ok = await verifyTurnstile(body.turnstileToken, ip);
+      if (!ok) {
+        return NextResponse.json({ error: "Güvenlik doğrulaması başarısız. Sayfayı yenileyin." }, { status: 400 });
+      }
+    }
+
     const email = body.email.toLowerCase().trim();
 
     const pwErr = validatePassword(body.password);

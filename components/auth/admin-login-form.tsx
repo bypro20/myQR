@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ArrowRight, Lock, Mail, Shield } from "lucide-react";
+import { HoneypotField } from "@/components/security/honeypot-field";
+import { TurnstileWidget } from "@/components/security/turnstile-widget";
+import { isTurnstileSiteKeyConfigured } from "@/lib/security/turnstile";
 
 export function AdminLoginForm() {
   const router = useRouter();
@@ -11,20 +14,36 @@ export function AdminLoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRequired = isTurnstileSiteKeyConfigured();
 
-  async function submit(e: React.FormEvent) {
+  const onTurnstile = useCallback((token: string) => setTurnstileToken(token), []);
+  const onTurnstileExpire = useCallback(() => setTurnstileToken(""), []);
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (turnstileRequired && !turnstileToken) {
+      setError("Güvenlik doğrulamasını tamamlayın.");
+      return;
+    }
     setLoading(true);
     setError("");
+    const fd = new FormData(e.currentTarget);
     const res = await fetch("/api/auth/admin-login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({
+        email,
+        password,
+        _hp: fd.get("_hp"),
+        turnstileToken: turnstileToken || undefined,
+      }),
     });
     const data = await res.json();
     setLoading(false);
     if (!res.ok) {
       setError(data.error || "Giriş başarısız.");
+      setTurnstileToken("");
       return;
     }
     router.push(data.redirectTo || "/admin");
@@ -32,7 +51,8 @@ export function AdminLoginForm() {
   }
 
   return (
-    <form onSubmit={submit} className="card-elevated border-slate-200 p-8 shadow-xl">
+    <form onSubmit={submit} className="card-elevated relative border-slate-200 p-8 shadow-xl">
+      <HoneypotField />
       <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-slate-100 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
         <Shield className="h-3.5 w-3.5" />
         Yönetici Girişi
@@ -74,6 +94,8 @@ export function AdminLoginForm() {
           </div>
         </label>
       </div>
+
+      <TurnstileWidget onToken={onTurnstile} onExpire={onTurnstileExpire} />
 
       <button
         type="submit"

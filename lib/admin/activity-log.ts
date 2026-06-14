@@ -39,11 +39,13 @@ export const ACTIVITY_KIND_LABELS: Record<ActivityKind, string> = {
   ORG_UPDATED: "Organizasyon güncelleme",
   ADMIN_BULK_ACTION: "Toplu admin işlemi",
   STAFF_UPDATED: "Yetkili güncelleme",
+  SECURITY_BLOCKED: "Güvenlik engeli",
+  SECURITY_LOGIN_FAILED: "Başarısız giriş denemesi",
 };
 
 function kindCategory(kind: ActivityKind | string): ActivityFeedItem["category"] {
   if (kind.startsWith("QR_")) return "qr";
-  if (kind.includes("LOGIN") || kind === "SIGNUP") return "auth";
+  if (kind.includes("LOGIN") || kind === "SIGNUP" || kind.startsWith("SECURITY_")) return "auth";
   if (kind.startsWith("PAYMENT_")) return "payment";
   if (kind.startsWith("CREDIT_")) return "credit";
   if (kind.startsWith("USER_")) return "user";

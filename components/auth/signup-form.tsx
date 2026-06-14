@@ -2,19 +2,31 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { AuthSidePanel } from "@/components/auth/auth-side-panel";
+import { HoneypotField } from "@/components/security/honeypot-field";
+import { TurnstileWidget } from "@/components/security/turnstile-widget";
 import { isLaunchActive, LAUNCH, signupOfferLine } from "@/lib/marketing/launch-config";
 import { trackSignupConversion } from "@/lib/analytics/gtag";
+import { isTurnstileSiteKeyConfigured } from "@/lib/security/turnstile";
 
 export function SignupForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRequired = isTurnstileSiteKeyConfigured();
+
+  const onTurnstile = useCallback((token: string) => setTurnstileToken(token), []);
+  const onTurnstileExpire = useCallback(() => setTurnstileToken(""), []);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (turnstileRequired && !turnstileToken) {
+      setError("Güvenlik doğrulamasını tamamlayın.");
+      return;
+    }
     setLoading(true);
     setError("");
     const fd = new FormData(e.currentTarget);
@@ -26,12 +38,15 @@ export function SignupForm() {
         email: fd.get("email"),
         password: fd.get("password"),
         company: fd.get("company"),
+        _hp: fd.get("_hp"),
+        turnstileToken: turnstileToken || undefined,
       }),
     });
     const data = await res.json();
     setLoading(false);
     if (!res.ok) {
       setError(data.error || "Kayıt başarısız.");
+      setTurnstileToken("");
       return;
     }
     trackSignupConversion();
@@ -42,7 +57,8 @@ export function SignupForm() {
   const inputClass = "input-focus w-full rounded-lg border border-[var(--line)] px-3 py-2.5 text-sm";
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="relative space-y-4">
+      <HoneypotField />
       {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
       <div>
         <label className="mb-1 block text-sm font-medium text-[var(--ink)]">Ad Soyad</label>
@@ -60,6 +76,7 @@ export function SignupForm() {
         <label className="mb-1 block text-sm font-medium text-[var(--ink)]">Şifre (min. 8 karakter)</label>
         <input name="password" type="password" minLength={8} required className={inputClass} placeholder="••••••••" />
       </div>
+      <TurnstileWidget onToken={onTurnstile} onExpire={onTurnstileExpire} />
       <button type="submit" disabled={loading} className="btn-gradient w-full py-3 text-sm disabled:opacity-60">
         {loading ? "Hesap oluşturuluyor…" : "Ücretsiz Hesap Oluştur"}
         {!loading ? <ArrowRight className="h-4 w-4" /> : null}

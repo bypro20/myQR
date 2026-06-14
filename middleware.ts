@@ -3,6 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClientIp } from "@/lib/security/client-ip";
 import { applySecurityHeaders } from "@/lib/security/headers";
 import { checkRateLimit, getRouteLimit } from "@/lib/security/rate-limit";
+import {
+  getExtraProbePaths,
+  hasMaliciousPayload,
+  isDangerousMethod,
+  isSuspiciousBot,
+} from "@/lib/security/bot-shield";
+import { autoBlockOnAbuse, isIpBlocked } from "@/lib/security/ip-block";
+import { verifyApiOrigin } from "@/lib/security/origin-shield";
 
 const COOKIE = "myqr_session";
 
@@ -14,6 +22,7 @@ const PROBE_PATHS = [
   "/phpmyadmin",
   "/admin.php",
   "/xmlrpc.php",
+  ...getExtraProbePaths(),
 ];
 
 function canonicalHost() {
@@ -65,22 +74,49 @@ function isProbe(pathname: string) {
   return PROBE_PATHS.some((p) => lower === p || lower.startsWith(`${p}/`));
 }
 
+function blockResponse(retryAfterSec?: number) {
+  const headers: Record<string, string> = {};
+  if (retryAfterSec) headers["Retry-After"] = String(retryAfterSec);
+  return applySecurityHeaders(new NextResponse(null, { status: 403, headers }));
+}
+
 export async function middleware(req: NextRequest) {
   const canonicalRedirect = redirectToCanonical(req);
   if (canonicalRedirect) return canonicalRedirect;
 
-  const { pathname } = req.nextUrl;
+  const { pathname, search } = req.nextUrl;
 
-  if (isProbe(pathname)) {
-    return applySecurityHeaders(new NextResponse(null, { status: 404 }));
+  if (isDangerousMethod(req.method)) {
+    return applySecurityHeaders(new NextResponse(null, { status: 405 }));
   }
 
   const ip = getClientIp(req);
+  const ipBlock = isIpBlocked(ip);
+  if (ipBlock.blocked) {
+    return blockResponse(ipBlock.retryAfterSec);
+  }
+
+  if (isProbe(pathname) || hasMaliciousPayload(pathname, search)) {
+    autoBlockOnAbuse(ip);
+    return applySecurityHeaders(new NextResponse(null, { status: 404 }));
+  }
+
+  if (isSuspiciousBot(req) && pathname.startsWith("/api")) {
+    autoBlockOnAbuse(ip);
+    return blockResponse();
+  }
+
+  if (pathname.startsWith("/api") && !verifyApiOrigin(req)) {
+    return applySecurityHeaders(
+      NextResponse.json({ error: "İstek reddedildi." }, { status: 403 }),
+    );
+  }
 
   if (pathname.startsWith("/api")) {
     const { limit, windowMs } = getRouteLimit(pathname);
     const rl = checkRateLimit(`api:${ip}:${pathname}`, limit, windowMs);
     if (!rl.ok) {
+      autoBlockOnAbuse(ip);
       return applySecurityHeaders(
         NextResponse.json(
           { error: "Çok fazla istek. Lütfen biraz bekleyin." },

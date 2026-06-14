@@ -35,7 +35,10 @@ export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
-export async function createSession(payload: SessionPayload) {
+export async function createSession(payload: SessionPayload, options?: { maxAgeSec?: number }) {
+  const maxAgeSec = options?.maxAgeSec ?? 60 * 60 * 24 * 7;
+  const exp = maxAgeSec >= 86400 ? `${Math.floor(maxAgeSec / 86400)}d` : `${maxAgeSec}s`;
+
   const token = await new SignJWT({
     userId: payload.userId,
     email: payload.email,
@@ -45,7 +48,7 @@ export async function createSession(payload: SessionPayload) {
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime(exp)
     .sign(getSecret());
 
   const jar = await cookies();
@@ -54,7 +57,7 @@ export async function createSession(payload: SessionPayload) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: maxAgeSec,
     priority: "high",
   });
 }
@@ -181,13 +184,16 @@ export async function loginAdminUser(email: string, password: string): Promise<L
     data: { lastLoginAt: new Date() },
   });
 
-  await createSession({
-    userId: auth.user.id,
-    email: auth.user.email,
-    organizationId: auth.membership.organizationId,
-    membershipRole: auth.membership.role,
-    systemRole: auth.user.role,
-  });
+  await createSession(
+    {
+      userId: auth.user.id,
+      email: auth.user.email,
+      organizationId: auth.membership.organizationId,
+      membershipRole: auth.membership.role,
+      systemRole: auth.user.role,
+    },
+    { maxAgeSec: 4 * 60 * 60 },
+  );
 
   void logActivity({
     kind: ActivityKind.ADMIN_LOGIN,
