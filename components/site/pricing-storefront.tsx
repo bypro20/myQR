@@ -213,7 +213,7 @@ export function PricingStorefront() {
                   <PlanCard
                     key={plan.id}
                     plan={plan}
-                    ctaLabel={authed === false ? "Giriş yap & abone ol" : "Abone ol"}
+                    ctaLabel="Abone ol"
                     ctaOnClick={() => buyPlan(plan.id)}
                     ctaLoading={loading === plan.id}
                   />
@@ -313,7 +313,7 @@ export function PricingStorefront() {
                     pkg={pkg}
                     variant="dark"
                     showButton
-                    ctaLabel={authed === false ? "Giriş yap & satın al" : "Satın al"}
+                    ctaLabel="Satın al"
                     loading={loading === pkg.id}
                     onBuy={() => buyCredit(pkg.id)}
                   />
