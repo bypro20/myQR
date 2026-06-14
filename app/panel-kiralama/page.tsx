@@ -249,7 +249,7 @@ export default function PanelKiralamaPage() {
 
         <section className="section-pad">
           <div className="site-container">
-            <div className="grid items-start gap-12 lg:grid-cols-2">
+            <div className="grid items-start gap-10 lg:grid-cols-2">
             <MarketingVisual
               src={MARKETING_IMAGES.qrRevenue}
               alt="QR kodlarınızı gelir kaynağına dönüştürün — bayilik sistemi"

@@ -16,6 +16,8 @@ type Props = {
   align?: "left" | "right" | "center";
   expandable?: boolean;
   href?: string;
+  /** Lightbox içinde detay linki; altyazıda gösterme (sayfada ayrı CTA varsa false) */
+  showCaptionLink?: boolean;
 };
 
 export function MarketingVisual({
@@ -28,6 +30,7 @@ export function MarketingVisual({
   align = "center",
   expandable = true,
   href,
+  showCaptionLink = false,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -64,7 +67,7 @@ export function MarketingVisual({
   const imageBlock = (
     <div
       className={cn(
-        "relative overflow-hidden border border-white/20 bg-gradient-to-br from-slate-50 to-white",
+        "relative flex items-center justify-center overflow-hidden border border-white/20 bg-gradient-to-br from-slate-50 to-white p-2 sm:p-3",
         frameClass,
         expandable && "cursor-zoom-in",
       )}
@@ -90,19 +93,19 @@ export function MarketingVisual({
         height={frame === "hero" ? 1100 : 1600}
         priority={priority}
         className={cn(
-          "h-auto w-full transition duration-700",
-          useContain ? "object-contain" : "object-cover",
+          "mx-auto block h-auto w-auto max-w-full transition duration-700",
+          useContain ? "object-contain" : "object-cover object-center",
           expandable && "group-hover:scale-[1.01]",
-          frame === "hero" && "max-h-[min(78vh,720px)]",
-          frame === "wide" && "max-h-[min(70vh,560px)]",
-          frame === "showcase" && "max-h-[min(68vh,520px)]",
-          frame === "card" && "max-h-[400px]",
+          frame === "hero" && "max-h-[min(72vh,640px)]",
+          frame === "wide" && "max-h-[min(56vh,440px)]",
+          frame === "showcase" && "max-h-[min(50vh,380px)] sm:max-h-[420px]",
+          frame === "card" && "max-h-[320px]",
         )}
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 600px"
       />
       {expandable ? (
-        <div className="pointer-events-none absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 transition group-hover:opacity-100">
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-xs font-semibold text-slate-800 shadow-lg">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/10 group-hover:opacity-100">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-xs font-semibold text-slate-800 shadow-lg">
             <ZoomIn className="h-3.5 w-3.5" />
             Tam görüntüle
           </span>
@@ -138,9 +141,9 @@ export function MarketingVisual({
           imageBlock
         )}
         {caption ? (
-          <figcaption className="mt-4 text-center text-sm font-medium text-slate-400">
+          <figcaption className="mt-3 text-center text-sm font-medium text-slate-400">
             {caption}
-            {href ? (
+            {href && showCaptionLink ? (
               <>
                 {" "}
                 <Link href={href} className="text-[var(--brand)] hover:underline">
@@ -154,22 +157,36 @@ export function MarketingVisual({
 
       {open ? (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/92 p-4 backdrop-blur-sm sm:p-8"
+          className="fixed inset-0 z-[100] flex flex-col bg-black/92 backdrop-blur-sm"
           onClick={close}
           role="dialog"
           aria-modal="true"
           aria-label={alt}
         >
-          <button
-            type="button"
-            onClick={close}
-            className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/20"
-            aria-label="Kapat"
-          >
-            <X className="h-6 w-6" />
-          </button>
+          <div className="flex shrink-0 items-center justify-between gap-4 px-4 py-3 sm:px-6">
+            <p className="truncate text-sm font-medium text-white/80">{alt}</p>
+            <div className="flex items-center gap-2">
+              {href ? (
+                <Link
+                  href={href}
+                  className="btn-brand hidden px-4 py-2 text-sm sm:inline-flex"
+                  onClick={close}
+                >
+                  Detayları gör
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={close}
+                className="rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/20"
+                aria-label="Kapat"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
           <div
-            className="relative max-h-[92vh] w-full max-w-5xl"
+            className="flex flex-1 items-center justify-center overflow-auto p-4 sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <Image
@@ -177,18 +194,18 @@ export function MarketingVisual({
               alt={alt}
               width={1400}
               height={2000}
-              className="mx-auto h-auto max-h-[92vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl"
+              className="h-auto max-h-full w-auto max-w-full rounded-xl object-contain shadow-2xl"
               sizes="95vw"
               priority
             />
-            {href ? (
-              <div className="mt-4 text-center">
-                <Link href={href} className="btn-brand inline-flex px-6 py-3" onClick={close}>
-                  Detayları gör
-                </Link>
-              </div>
-            ) : null}
           </div>
+          {href ? (
+            <div className="shrink-0 border-t border-white/10 p-4 text-center sm:hidden">
+              <Link href={href} className="btn-brand inline-flex w-full max-w-xs justify-center px-6 py-3" onClick={close}>
+                Detayları gör
+              </Link>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </>

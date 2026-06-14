@@ -179,16 +179,16 @@ export default async function HomePage() {
         </section>
 
         <section className="section-pad border-b border-[var(--line)] bg-white">
-          <div className="site-container grid items-center gap-12 lg:grid-cols-2">
+          <div className="site-container grid items-start gap-10 lg:grid-cols-2 lg:gap-12">
             <MarketingVisual
               src={MARKETING_IMAGES.qrRevenue}
               alt="QR kodlarınızı gelir kaynağına dönüştürün — dinamik QR ve bayilik sistemi"
-              caption="Müşterilerinize QR hizmeti sunun, her yenilemede tekrarlayan gelir elde edin"
+              caption="Görsele tıklayarak tam boyutta inceleyin"
               frame="showcase"
               align="left"
               href="/panel-kiralama"
             />
-            <div>
+            <div className="lg:pt-2">
               <span className="section-badge">
                 <Users className="h-3.5 w-3.5" />
                 İş ortağı programı
@@ -232,7 +232,7 @@ export default async function HomePage() {
         </section>
 
         <section id="guvenlik" className="section-pad">
-          <div className="site-container grid items-center gap-12 lg:grid-cols-2">
+          <div className="site-container grid items-start gap-10 lg:grid-cols-2">
             <div>
               <IconBadge icon={Lock} gradient="from-slate-700 to-slate-900" size="lg" />
               <h2 className="section-title mt-6 text-[var(--ink)]">Verileriniz güvende</h2>
