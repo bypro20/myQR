@@ -3,6 +3,7 @@ import { z } from "zod";
 import { PlanTier } from "@/app/generated/prisma/client";
 import { hashPassword } from "@/lib/auth";
 import { assertChildOrganization, requirePartnerApi } from "@/lib/partner";
+import { validatePassword } from "@/lib/security/password";
 import { prisma } from "@/lib/prisma";
 
 const patchSchema = z.object({
@@ -37,6 +38,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const taken = await prisma.user.findFirst({ where: { email, NOT: { id: owner.id } } });
       if (taken) {
         return NextResponse.json({ error: "Bu e-posta kullanımda." }, { status: 409 });
+      }
+    }
+
+    if (body.newPassword) {
+      const pwErr = validatePassword(body.newPassword);
+      if (pwErr) {
+        return NextResponse.json({ error: pwErr }, { status: 400 });
       }
     }
 

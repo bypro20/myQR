@@ -4,6 +4,7 @@ import { CreditTxType, MembershipRole, PlanTier, SubscriptionStatus } from "@/ap
 import { createSession, hashPassword } from "@/lib/auth";
 import { PRICING } from "@/lib/billing/pricing-config";
 import { totalSignupCredits, isLaunchActive, LAUNCH } from "@/lib/marketing/launch-config";
+import { validatePassword } from "@/lib/security/password";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
@@ -18,6 +19,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = schema.parse(await req.json());
     const email = body.email.toLowerCase().trim();
+
+    const pwErr = validatePassword(body.password);
+    if (pwErr) {
+      return NextResponse.json({ error: pwErr }, { status: 400 });
+    }
 
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) {

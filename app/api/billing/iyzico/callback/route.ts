@@ -14,25 +14,18 @@ function redirect(status: "success" | "failed", msg?: string) {
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
-    const token = String(form.get("token") || "");
+    const token = String(form.get("token") || "").trim();
 
-    if (!token) {
-      return redirect("failed", "Ödeme token eksik.");
+    if (!token || token.length < 8 || token.length > 256) {
+      return redirect("failed", "Ödeme token geçersiz.");
     }
 
-    const orders = await prisma.paymentOrder.findMany({
-      where: { status: PaymentStatus.PENDING, provider: "iyzico" },
-      orderBy: { createdAt: "desc" },
-      take: 30,
-    });
-
-    const order = orders.find((o) => {
-      try {
-        const meta = JSON.parse(o.metadata || "{}") as { iyzicoToken?: string };
-        return meta.iyzicoToken === token;
-      } catch {
-        return false;
-      }
+    const order = await prisma.paymentOrder.findFirst({
+      where: {
+        provider: "iyzico",
+        providerRef: token,
+        status: { in: [PaymentStatus.PENDING, PaymentStatus.AWAITING_CONFIRMATION] },
+      },
     });
 
     if (!order) {

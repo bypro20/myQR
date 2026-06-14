@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUserApi } from "@/lib/auth-api";
-import { validateUpload } from "@/lib/api/upload-guard";
+import { validateUpload, validateUploadBytes } from "@/lib/api/upload-guard";
 import { saveUpload } from "@/lib/uploads";
 import { prisma } from "@/lib/prisma";
 
@@ -33,6 +33,11 @@ export async function POST(req: NextRequest) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  const bytesCheck = validateUploadBytes(buffer, file, category);
+  if (!bytesCheck.ok) {
+    return NextResponse.json({ error: bytesCheck.error }, { status: 400 });
+  }
+
   const saved = await saveUpload(
     category as "logos" | "png" | "svg" | "pdf" | "templates" | "bulk",
     file.name,

@@ -21,6 +21,9 @@ export type SessionPayload = {
 function getSecret() {
   const secret = process.env.AUTH_SECRET;
   if (!secret) throw new Error("AUTH_SECRET tanımlı değil");
+  if (process.env.NODE_ENV === "production" && secret.length < 32) {
+    throw new Error("AUTH_SECRET üretimde en az 32 karakter olmalı");
+  }
   return new TextEncoder().encode(secret);
 }
 
@@ -52,6 +55,7 @@ export async function createSession(payload: SessionPayload) {
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
+    priority: "high",
   });
 }
 

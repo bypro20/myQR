@@ -12,6 +12,12 @@ import { ActivityKind } from "@/app/generated/prisma/client";
 import { transferCredits } from "@/lib/credits";
 import { listPartnerCustomers, requirePartnerApi } from "@/lib/partner";
 import { prisma } from "@/lib/prisma";
+import { validatePassword } from "@/lib/security/password";
+import {
+  MAX_PARTNER_CREDIT_TRANSFER,
+  MAX_PARTNER_CUSTOMERS,
+  MAX_PARTNER_INITIAL_CREDITS,
+} from "@/lib/security/limits";
 import { slugify } from "@/lib/utils";
 
 const createSchema = z.object({
@@ -20,7 +26,7 @@ const createSchema = z.object({
   password: z.string().min(8).max(128),
   company: z.string().min(2).max(120),
   planTier: z.nativeEnum(PlanTier).default(PlanTier.FREE),
-  credits: z.number().int().min(0).default(0),
+  credits: z.number().int().min(0).max(MAX_PARTNER_INITIAL_CREDITS).default(0),
 });
 
 export async function GET() {
@@ -81,6 +87,25 @@ export async function POST(req: NextRequest) {
   try {
     const body = createSchema.parse(await req.json());
     const email = body.email.toLowerCase().trim();
+
+    const pwErr = validatePassword(body.password);
+    if (pwErr) {
+      return NextResponse.json({ error: pwErr }, { status: 400 });
+    }
+
+    if (body.credits > MAX_PARTNER_INITIAL_CREDITS) {
+      return NextResponse.json(
+        { error: `Başlangıç kredisi en fazla ${MAX_PARTNER_INITIAL_CREDITS.toLocaleString("tr-TR")} olabilir.` },
+        { status: 400 },
+      );
+    }
+
+    const childCount = await prisma.organization.count({
+      where: { parentOrganizationId: auth.organization.id },
+    });
+    if (childCount >= MAX_PARTNER_CUSTOMERS) {
+      return NextResponse.json({ error: "Müşteri paneli limitine ulaşıldı." }, { status: 400 });
+    }
 
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) {

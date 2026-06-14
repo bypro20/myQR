@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
         where: { id: order.id },
         data: {
           provider: "iyzico",
+          providerRef: checkout.token,
           metadata: JSON.stringify({
             ...meta,
             iyzicoToken: checkout.token,

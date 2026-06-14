@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { UserRole } from "@/app/generated/prisma/client";
 import {
   adminAdjustCredits,
   adminSetCredits,
@@ -151,6 +152,9 @@ export async function POST(req: NextRequest) {
       const organizationId = body.organizationId as string | undefined;
       const scopeAll = body.scope === "all";
       if (scopeAll) {
+        if (auth.user.role !== UserRole.SUPER_ADMIN) {
+          return NextResponse.json({ error: "Bu işlem yalnızca süper admin içindir." }, { status: 403 });
+        }
         if (body.confirm !== "SIFIRLA") {
           return NextResponse.json({ error: "Onay için confirm: 'SIFIRLA' gönderin." }, { status: 400 });
         }
@@ -166,6 +170,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "reset_balances") {
+      if (auth.user.role !== UserRole.SUPER_ADMIN) {
+        return NextResponse.json({ error: "Bu işlem yalnızca süper admin içindir." }, { status: 403 });
+      }
       if (body.confirm !== "SIFIRLA") {
         return NextResponse.json({ error: "Onay için confirm: 'SIFIRLA' gönderin." }, { status: 400 });
       }

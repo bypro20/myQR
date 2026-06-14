@@ -113,6 +113,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.action === "reset_payment_history") {
+      if (!isSuperAdmin) {
+        return NextResponse.json({ error: "Bu işlem yalnızca süper admin içindir." }, { status: 403 });
+      }
       if (body.confirm !== "SIFIRLA") {
         return NextResponse.json(
           { error: "Onay için confirm: 'SIFIRLA' gönderin." },
@@ -124,6 +127,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.action === "clear_all_payments") {
+      if (!isSuperAdmin) {
+        return NextResponse.json({ error: "Bu işlem yalnızca süper admin içindir." }, { status: 403 });
+      }
       if (body.confirm !== "SIFIRLA") {
         return NextResponse.json(
           { error: "Onay için confirm: 'SIFIRLA' gönderin." },

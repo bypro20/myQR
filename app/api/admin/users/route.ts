@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { CreditTxType, MembershipRole, PlanTier, SubscriptionStatus, UserRole } from "@/app/generated/prisma/client";
 import { hashPassword } from "@/lib/auth";
+import { validatePassword } from "@/lib/security/password";
 import { prisma } from "@/lib/prisma";
 import { requireAdminPermissionApi } from "@/lib/tenant";
 import { slugify } from "@/lib/utils";
@@ -22,6 +23,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = createSchema.parse(await req.json());
     const email = body.email.toLowerCase().trim();
+
+    const pwErr = validatePassword(body.password);
+    if (pwErr) {
+      return NextResponse.json({ error: pwErr }, { status: 400 });
+    }
 
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) {

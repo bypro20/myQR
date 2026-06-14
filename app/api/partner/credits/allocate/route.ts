@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { assertChildOrganization, requirePartnerApi } from "@/lib/partner";
 import { transferCredits } from "@/lib/credits";
+import { MAX_PARTNER_CREDIT_TRANSFER } from "@/lib/security/limits";
 import { prisma } from "@/lib/prisma";
 
 const schema = z.object({
-  organizationId: z.string().min(1),
-  amount: z.number().int().positive(),
+  organizationId: z.string().min(1).max(64),
+  amount: z.number().int().positive().max(MAX_PARTNER_CREDIT_TRANSFER),
 });
 
 export async function POST(req: NextRequest) {
