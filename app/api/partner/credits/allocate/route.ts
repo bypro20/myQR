@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { requireDbReady } from "@/lib/db/require-db-ready";
 import { assertChildOrganization, requirePartnerApi } from "@/lib/partner";
 import { transferCredits } from "@/lib/credits";
 import { MAX_PARTNER_CREDIT_TRANSFER } from "@/lib/security/limits";
@@ -11,6 +12,9 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const dbBlock = await requireDbReady();
+  if (dbBlock) return dbBlock;
+
   const auth = await requirePartnerApi();
   if (auth.error) return auth.error;
 

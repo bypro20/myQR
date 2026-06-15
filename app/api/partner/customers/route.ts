@@ -6,6 +6,7 @@ import {
   SubscriptionStatus,
   UserRole,
 } from "@/app/generated/prisma/client";
+import { requireDbReady } from "@/lib/db/require-db-ready";
 import { hashPassword } from "@/lib/auth";
 import { logActivity } from "@/lib/admin/activity-log";
 import { ActivityKind } from "@/app/generated/prisma/client";
@@ -81,6 +82,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const dbBlock = await requireDbReady();
+  if (dbBlock) return dbBlock;
+
   const auth = await requirePartnerApi();
   if (auth.error) return auth.error;
 

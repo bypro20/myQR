@@ -11,6 +11,7 @@ import {
   subscriptionPackageId,
 } from "@/lib/billing/order-catalog";
 import { isPaymentCheckoutReady } from "@/lib/billing/payment-config";
+import { requireDbReady } from "@/lib/db/require-db-ready";
 import { logActivity } from "@/lib/admin/activity-log";
 import { getPlan } from "@/lib/plans";
 import { requireTenantApi } from "@/lib/tenant";
@@ -47,6 +48,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const dbBlock = await requireDbReady();
+  if (dbBlock) return dbBlock;
+
   const auth = await requireTenantApi();
   if (auth.error) return auth.error;
 

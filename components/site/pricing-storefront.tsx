@@ -204,7 +204,7 @@ export function PricingStorefront() {
                 </span>
                 <h2 className="section-title mt-3">Planınızı seçin, hemen başlayın</h2>
                 <p className="section-sub mt-2">
-                  Starter, Pro ve Business planları aylık faturalandırılır. Kart veya FAST ile anında abone olun.
+                  Starter, Pro ve Business planları aylık faturalandırılır. FAST veya havale ile anında abone olun.
                 </p>
               </div>
 

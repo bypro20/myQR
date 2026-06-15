@@ -34,13 +34,7 @@ if [ -n "$TOKEN" ]; then
     export DATABASE_URL="libsql://${DB_URL}"
     DB_TOKEN="$(curl -sS -X POST "https://api.turso.tech/v1/databases/myqr-bypro20/auth/tokens" -H "Authorization: Bearer $TOKEN" | python3 -c "import sys,json; print(json.load(sys.stdin).get('jwt',''))" 2>/dev/null)"
     export TURSO_AUTH_TOKEN="${DB_TOKEN:-$TURSO_AUTH_TOKEN}"
-    npx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script 2>/dev/null | grep -v '^Loaded' > /tmp/myqr-schema.sql
-    set -a; export DATABASE_URL TURSO_AUTH_TOKEN; set +a
-    npx tsx scripts/apply-schema.ts /tmp/myqr-schema.sql
-    npx tsx scripts/apply-schema.ts scripts/patch-platform-admin.sql
-    npx tsx scripts/apply-schema.ts scripts/patch-unlimited-credits.sql
-    npx tsx scripts/apply-schema.ts scripts/patch-activity-log.sql
-    npx tsx scripts/apply-schema.ts scripts/patch-qr-duration.sql
+    npx tsx scripts/sync-turso-schema.ts
     npm run db:seed
   fi
 fi

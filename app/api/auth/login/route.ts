@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ActivityKind } from "@/app/generated/prisma/client";
+import { requireDbReady } from "@/lib/db/require-db-ready";
 import { destroySession, getSession, loginUser } from "@/lib/auth";
 import { logSecurityEvent } from "@/lib/security/audit";
 import { getClientIp } from "@/lib/security/client-ip";
@@ -8,6 +9,9 @@ import { clearLoginFailures, isLoginBlocked, loginDelay, recordLoginFailure } fr
 import { isTurnstileEnabled, verifyTurnstile } from "@/lib/security/turnstile";
 
 export async function POST(req: NextRequest) {
+  const dbBlock = await requireDbReady();
+  if (dbBlock) return dbBlock;
+
   const ip = getClientIp(req);
   const body = await req.json();
   const email = String(body.email || "").trim().toLowerCase();

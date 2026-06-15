@@ -10,6 +10,7 @@ import { getClientIp } from "@/lib/security/client-ip";
 import { isHoneypotTripped } from "@/lib/security/honeypot";
 import { validatePassword } from "@/lib/security/password";
 import { isTurnstileEnabled, verifyTurnstile } from "@/lib/security/turnstile";
+import { requireDbReady } from "@/lib/db/require-db-ready";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
@@ -23,6 +24,9 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const dbBlock = await requireDbReady();
+  if (dbBlock) return dbBlock;
+
   const ip = getClientIp(req);
   try {
     const body = schema.parse(await req.json());
