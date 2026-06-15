@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { ChevronDown, Menu, QrCode, X } from "lucide-react";
 import { useState } from "react";
 import { LaunchBanner } from "@/components/site/launch-banner";
-import { isLaunchActive, LAUNCH } from "@/lib/marketing/launch-config";
 import { cn } from "@/lib/utils";
 
 const mainNav = [
@@ -98,7 +97,7 @@ export function SiteHeader() {
               Giriş
             </Link>
             <Link href="/signup" className="btn-brand hidden px-5 py-2.5 sm:inline-flex">
-              {isLaunchActive() ? LAUNCH.ctaPrimary : "Ücretsiz dene"}
+              Ücretsiz dene
             </Link>
             <button
               type="button"
@@ -139,7 +138,7 @@ export function SiteHeader() {
                 Giriş
               </Link>
               <Link href="/signup" onClick={() => setOpen(false)} className="btn-brand block w-full py-3 text-center">
-                {isLaunchActive() ? LAUNCH.ctaPrimary : "Ücretsiz dene"}
+                Ücretsiz dene
               </Link>
             </div>
           </div>
