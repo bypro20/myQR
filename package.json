@@ -10,6 +10,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
+    "db:sync-turso": "tsx scripts/ensure-turso-schema.ts",
     "db:seed": "tsx prisma/seed.ts",
     "setup": "npm install && prisma generate && prisma db push && tsx prisma/seed.ts",
     "postinstall": "prisma generate"
