@@ -7,6 +7,7 @@ const WEBHOOK_PATHS = [
 ];
 
 const PUBLIC_AUTH_PATHS = ["/api/auth/login", "/api/auth/signup", "/api/auth/admin-login"];
+const INTEGRATION_PATHS = ["/api/integration/"];
 
 function allowedHosts(): string[] {
   const hosts = new Set<string>();
@@ -29,6 +30,7 @@ function allowedHosts(): string[] {
 export function verifyApiOrigin(req: NextRequest): boolean {
   const pathname = req.nextUrl.pathname;
   if (WEBHOOK_PATHS.some((p) => pathname.startsWith(p))) return true;
+  if (INTEGRATION_PATHS.some((p) => pathname.startsWith(p))) return true;
   if (PUBLIC_AUTH_PATHS.some((p) => pathname === p)) return true;
   if (process.env.NODE_ENV !== "production") return true;
 
